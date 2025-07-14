@@ -1,15 +1,9 @@
 import { Injectable, inject } from "@angular/core";
 import { createClient, SupabaseClient as Client } from "@supabase/supabase-js";
 import { environment } from "../../environments/environment";
-import { defer, from, map, Observable, shareReplay, startWith, Subject, switchMap, tap } from "rxjs";
-import { FetchBackend } from "@angular/common/http";
-
-type QueryResult<T> = {
-    data: T[] | null,
-    error: any
-}
-
-type AddingEntity<TEntity> = Omit<TEntity, 'id'>;
+import { defer, from, map, Observable, shareReplay, startWith, switchMap, tap } from "rxjs";
+import { AddingEntity, Query, QueryResult, TableName } from "./types/supabase.types";
+import { DisposableSupabaseService } from "./disposable-supabase.service";
 
 @Injectable({
     providedIn: 'root'
@@ -32,9 +26,13 @@ export class SupabaseClientProvider {
 @Injectable({
     providedIn: 'root'
 })
-export class SupabaseService {
+export class SupabaseRepository {
 
     private readonly client = inject(SupabaseClientProvider).client;
+
+    get disposable() {
+        return new DisposableSupabaseService(this.client);
+    }
 
     async add<TEntity>(tableName: string, record: AddingEntity<TEntity> | AddingEntity<TEntity>[]): Promise<any> {
         const { data, error } = await this.client
@@ -49,7 +47,18 @@ export class SupabaseService {
         return data;
     }
 
-    get<TEntity>(tableName: string): Observable<TEntity[]> {
+    getAll<TEntity>(tableName: TableName): Observable<QueryResult<TEntity>> {
+        return this._get(
+            tableName,
+            builder => builder.select('*'),
+        );
+    }
+
+    get<TEntity>(tableName: TableName, query: Query): Observable<QueryResult<TEntity>> {
+        return this._get(tableName, query);
+    }
+
+    private _get<TEntity>(tableName: TableName, query: Query): Observable<QueryResult<TEntity>> {
         const changes$ = new Observable<void>(subscriber => {
             const channel = this.client.channel(`public:${tableName}`);
             const onChange$ = channel.on(
@@ -77,22 +86,32 @@ export class SupabaseService {
         });
 
         return changes$.pipe(
-            startWith(void 0),
+            shareReplay(1),
+            startWith(void 0), // Force trigger first data loading
             switchMap(() => defer(() =>
                 from(
-                    this.client.from(tableName).select('*')
+                    query(
+                        this.client.from<string, TEntity>(tableName)
+                    )
                 )).pipe(
-                    map(({ data, error }) => {
+                    map<any, QueryResult<TEntity>>(({ data, error }) => {
                         if (!!error) {
                             throw new Error(error.message);
                         }
 
-                        return data || [];
+                        return {
+                            data: data || [],
+                            loading: false,
+                        };
+                    }),
+                    startWith({
+                        data: null,
+                        loading: true,
                     }),
                 )
             ),
-            tap(x => console.log('received new data from table', tableName, x)),
-            shareReplay({ bufferSize: 1, refCount: true })
+            // tap(x => console.log('received new data from table', tableName, x)),
+            shareReplay(1)
         );
     }
 }
