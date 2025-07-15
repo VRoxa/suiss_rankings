@@ -54,7 +54,7 @@ const toDifference = (diff: number) => {
                     <nz-icon nzType="vertical-left"></nz-icon>
                 </button>   
 
-                <sw-participants-list [vm]="vm"></sw-participants-list>
+                <sr-participants-list [vm]="vm"></sr-participants-list>
 
                 <button nz-button
                     nzType="primary" nzShape="round"

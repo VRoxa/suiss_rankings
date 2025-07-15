@@ -1,5 +1,6 @@
-import { combineLatest, filter, map, Observable, startWith, tap } from "rxjs"
+import { combineLatest, filter, iif, map, Observable, startWith, switchMap, tap } from "rxjs"
 import { QueryResult } from "../domain/repositories/types/supabase.types";
+import { Predicate } from "@angular/core";
 
 type ObservableResult<T> = {
     [Key in keyof T]: Observable<T[Key]>;
@@ -39,4 +40,20 @@ export const loadingFromQuery = (source: Observable<QueryResult<any> | QueryResu
         }),
         startWith(true),
     );
+}
+
+export const sswitch = <TSource, TResult = TSource>(
+    condition: Predicate<TSource>,
+    whenTrue: (value: TSource) =>  Observable<TResult>,
+    whenFalse: (value: TSource) => Observable<TResult>,
+) => {
+    return (source: Observable<TSource>): Observable<TResult> => {
+        return source.pipe(
+            switchMap(value => iif(
+                () => condition(value),
+                whenTrue(value),
+                whenFalse(value),
+            )),
+        );
+    }
 }

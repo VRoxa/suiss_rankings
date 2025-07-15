@@ -6,7 +6,7 @@ import { ParticipantsPageViewModel, ParticipantViewModel } from "./models/partic
 import { NzTypographyModule } from "ng-zorro-antd/typography";
 
 @Component({
-    selector: 'sw-participants-list',
+    selector: 'sr-participants-list',
     imports: [
         NzListModule,
         NzIconModule,

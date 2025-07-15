@@ -1,17 +1,24 @@
-import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
+import { ChangeDetectionStrategy, Component, inject, TemplateRef, ViewChild } from "@angular/core";
 import { SupabaseRepository } from "../domain/repositories/supabase.service";
 import { Match } from "../domain/entities/match.entity";
 import { CommonModule } from "@angular/common";
-import { combineLatest, filter, map, of, shareReplay, startWith, switchMap } from "rxjs";
+import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, merge, of, shareReplay, startWith, Subject, switchMap } from "rxjs";
 import { ActivatedRoute } from "@angular/router";
 import { Participant } from "../domain/entities/participant.entity";
-import { loadingFromQuery, log, mergeToObject } from "../utils/rx-utils";
+import { loadingFromQuery, log, mergeToObject, sswitch } from "../utils/rx-utils";
 import { MatchViewModel, RoundPageViewModel } from "../components/models/rounds.view-model";
 import { MatchesListComponent } from "../components/matches-list.component";
 import { NzButtonModule } from "ng-zorro-antd/button";
 import { NzIconModule } from "ng-zorro-antd/icon";
-import { Round } from "../domain/entities/round.entity";
 import { RoundsNavigatorComponent } from "../components/rounds-nav.component";
+import { NzModalModule, NzModalService } from "ng-zorro-antd/modal";
+import { UpdateMatchComponent } from "../components/update-match.component";
+
+const orderMatches = <T extends Match>(matches: T[]) => {
+    return [...matches].sort(({order: a}, {order: b}) =>
+        a - b
+    );
+}
 
 @Component({
     selector: 'sr-round',
@@ -21,24 +28,28 @@ import { RoundsNavigatorComponent } from "../components/rounds-nav.component";
         CommonModule,
         NzButtonModule,
         NzIconModule,
+        NzModalModule,
     ],
     template: `
         @if (vm$ | async; as vm) {
-            <sw-rounds-nav></sw-rounds-nav>
+            <sr-rounds-nav></sr-rounds-nav>
 
             <div class="next-round">
                 <button nz-button
                     nzType="primary"
                     nzShape="round"
                     class="next-round__btn"
-                    [disabled]="!isRoundFinished(vm.matches)"
+                    [disabled]="!vm.isRoundFinished"
                 >
                     Lanzar siguiente ronda
                     <nz-icon nzType="vertical-left"></nz-icon>
                 </button>    
             </div>
 
-            <sw-matches-list [vm]="vm"></sw-matches-list>
+            <sr-matches-list
+                [vm]="vm"
+                (onMatchClicked)="openUpdateMatch($event)"
+            ></sr-matches-list>
         }
     `,
     styles: [`
@@ -53,13 +64,13 @@ import { RoundsNavigatorComponent } from "../components/rounds-nav.component";
 export class RoundPage {
     private readonly repository = inject(SupabaseRepository);
     private readonly route = inject(ActivatedRoute);
+    private readonly modal = inject(NzModalService);
+    private readonly manualLoading$$ = new Subject<boolean>();
 
     id$ = this.route.paramMap.pipe(
         map(params => params.get('id')),
         filter(id => !!id),
     );
-
-    rounds$ = this.repository.getAll<Round>('round');
 
     matches$ = this.id$.pipe(
         switchMap(id =>
@@ -78,34 +89,59 @@ export class RoundPage {
         this.matches$,
     ]);
 
-    vm$ = mergeToObject<RoundPageViewModel>({
-        // rounds: this.rounds$.pipe(
-        //     map(({ data }) => data),
-        //     filter(x => !!x),
-        // ),
-        rounds: of<Round[]>([]),
-        loading: loadingFromQuery(this.source$),
-        matches: this.source$.pipe(
-            map(([{data: participants}, {data: matches}]) => [participants, matches] as [Participant[], Match[]]),
-            filter(([participants, matches]) => !!participants && !!matches),
-            map(([participants, matches]) => {
-                return matches.map((x) => ({
-                    ...x,
-                    team1: participants.find(({id}) => id === x.team1) ?? x.team1,
-                    team2: participants.find(({id}) => id === x.team2) ?? x.team2,
-                })) as MatchViewModel[];
-            }),
-            startWith([]),
-        ),
-    }).pipe(log('vm'));
+    mappedMatches$ = this.source$.pipe(
+        map(([{data: participants}, {data: matches}]) => [participants, matches] as [Participant[], Match[]]),
+        filter(([participants, matches]) => !!participants && !!matches),
+        map(([participants, matches]) => {
+            return matches.map((x) => ({
+                ...x,
+                team1: participants.find(({id}) => id === x.team1) ?? x.team1,
+                team2: participants.find(({id}) => id === x.team2) ?? x.team2,
+            })) as MatchViewModel[];
+        }),
+        map((matches) => orderMatches(matches)),
+        shareReplay(1),
+        startWith([]),
+    );
 
-    public isRoundFinished(matches: Match[]) {
-        if (!matches.length) {
-            return false;
+    vm$ = mergeToObject<RoundPageViewModel>({
+        loading: merge(
+            loadingFromQuery(this.source$),
+            this.manualLoading$$,
+        ),
+        matches: this.mappedMatches$,
+        isRoundFinished: this.mappedMatches$.pipe(
+            sswitch(
+                ({ length }) => !!length,
+                matches => of(matches.every(({ inProgress }) => inProgress)),
+                () => of(false),
+            ),
+        )
+    });
+
+    public async openUpdateMatch(match: MatchViewModel) {
+        const copy = (m: MatchViewModel) => {
+            return {
+                ...m,
+                score: m.score.map(x => ({...x})),
+            };
         }
 
-        return matches.every(({ score }) =>
-            score.every((x) => x?.winner !== 0)
-        );
+        const ref = this.modal.create({
+            nzTitle: 'Actualizar cruce',
+            nzContent: UpdateMatchComponent,
+            nzData: copy(match),
+        });
+
+        const result = await firstValueFrom(ref.afterClose);
+        console.log('update match result', result);
+        if (!result) {
+            // Canceled
+            return;
+        }
+
+        // TODO - update match
+        this.manualLoading$$.next(true);
+        setTimeout(() => this.manualLoading$$.next(false), 1000);
     }
 }

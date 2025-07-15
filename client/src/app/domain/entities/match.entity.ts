@@ -19,4 +19,6 @@ export interface Match {
         MatchScore,
         MatchScore | null
     ];
+
+    inProgress: boolean;
 }

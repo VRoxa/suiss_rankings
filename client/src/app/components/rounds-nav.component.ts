@@ -9,7 +9,7 @@ import { log } from "../utils/rx-utils";
 import { NzTabsModule } from "ng-zorro-antd/tabs";
 
 @Component({
-    selector: 'sw-rounds-nav',
+    selector: 'sr-rounds-nav',
     imports: [
         CommonModule,
         RouterModule,
