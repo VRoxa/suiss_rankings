@@ -118,14 +118,21 @@ export class App {
         Cada ronda puntuará según el resultado, siguiendo los siguientes
         criterios:<br />
 
-        <nz-table #points [nzData]="pointsCriteria" [nzShowPagination]="false" nzBordered>
+        <nz-table
+            #points
+            [nzData]="pointsCriteria"
+            [nzShowPagination]="false"
+            nzBordered
+        >
             <thead></thead>
             <tbody>
                 @for (criteria of points.data; track criteria.id) {
-                    <tr>
-                        <td>{{ criteria.label }}</td>
-                        <td><code>{{ criteria.value }}</code></td>
-                    </tr>
+                <tr>
+                    <td>{{ criteria.label }}</td>
+                    <td>
+                        <code>{{ criteria.value }}</code>
+                    </td>
+                </tr>
                 }
             </tbody>
         </nz-table>
@@ -212,11 +219,14 @@ export class App {
         <code>10-9</code>.<br /><br />
 
         <h4><b>Rondas</b></h4>
-        Se jugarán un total de seis rondas. La clasificación, por puntos, al
-        finalizar la sexta ronda determinará la clasificación del torneo.<br /><br />
+        Se jugarán un total de seis rondas.<br /><br />
 
         Al finalizar la cuarta ronda, las cuatro parejas con menor puntuación
-        serán eliminadas por <i>knockout</i>.
+        serán eliminadas por <i>knockout</i>.<br /><br />
+        
+        Al finalizar la sexta ronda se
+        determinará la clasificación del torneo en base a los puntos acumulados
+        de cada pareja.
     `,
     styles: [
         `
@@ -247,22 +257,22 @@ class InformationContentComponent {
         {
             id: 'win-match',
             label: 'Ganar cruce',
-            value: '+60'
+            value: '+60',
         },
         {
             id: 'win-game',
             label: 'Ganar partida',
-            value: '+50'
+            value: '+50',
         },
         {
             id: 'lose-game',
             label: 'Perder partida',
-            value: '-50'
+            value: '-50',
         },
         {
             id: 'difference',
             label: 'Diferencia de goles',
-            value: '±10'
-        }
-    ]
+            value: '±10',
+        },
+    ];
 }

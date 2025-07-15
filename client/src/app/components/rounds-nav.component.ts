@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { SupabaseRepository } from "../domain/repositories/supabase.service";
-import { NzBreadCrumbModule } from "ng-zorro-antd/breadcrumb";
 import { Round } from "../domain/entities/round.entity";
 import { CommonModule } from "@angular/common";
 import { filter, map } from "rxjs";

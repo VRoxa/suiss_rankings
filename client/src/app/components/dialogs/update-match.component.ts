@@ -1,13 +1,13 @@
-import { Component, inject } from "@angular/core";
-import { MatchViewModel } from "../models/rounds.view-model";
-import { CommonModule } from "@angular/common";
-import { NzInputModule } from "ng-zorro-antd/input";
-import { NzInputNumberModule } from "ng-zorro-antd/input-number";
-import { NzFormModule } from "ng-zorro-antd/form";
-import { FormsModule } from "@angular/forms";
-import { NZ_MODAL_DATA, NzModalModule, NzModalRef } from "ng-zorro-antd/modal";
-import { NzGridModule } from "ng-zorro-antd/grid";
-import { BehaviorSubject } from "rxjs";
+import { Component, inject } from '@angular/core';
+import { MatchViewModel } from '../models/rounds.view-model';
+import { CommonModule } from '@angular/common';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
+import { NzFormModule } from 'ng-zorro-antd/form';
+import { FormsModule } from '@angular/forms';
+import { NZ_MODAL_DATA, NzModalModule, NzModalRef } from 'ng-zorro-antd/modal';
+import { NzGridModule } from 'ng-zorro-antd/grid';
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
     selector: 'sr-update-match',
@@ -20,11 +20,10 @@ import { BehaviorSubject } from "rxjs";
         NzModalModule,
         NzGridModule,
     ],
-    template: `    
+    template: `
         <form nz-form [nzLayout]="'horizontal'">
             <nz-row [nzGutter]="16" nzAlign="middle">
-                <nz-col [nzSpan]="8">
-                </nz-col>
+                <nz-col [nzSpan]="8"> </nz-col>
                 <nz-col [nzSpan]="8">
                     <div class="participant-title">{{ match.team1.name }}</div>
                 </nz-col>
@@ -39,28 +38,27 @@ import { BehaviorSubject } from "rxjs";
                         <nz-form-control>
                             <nz-row [nzGutter]="16">
                                 <nz-col [nzSpan]="8">
-                                    <nz-form-label nzRequired nzFor="score-{{i}}-1">
+                                    <nz-form-label nzRequired nzFor="score-{{ i }}-1">
                                         Partida {{ i + 1 }}:
                                     </nz-form-label>
                                 </nz-col>
-
                                 <nz-col [nzSpan]="8">
                                     <nz-input-number
-                                        id="score-{{i}}-1"
+                                        id="score-{{ i }}-1"
                                         [(ngModel)]="gameScore.score1"
                                         nzMin="0"
                                         nzMax="10"
-                                        [ngModelOptions]="{standalone: true}"
+                                        [ngModelOptions]="{ standalone: true }"
                                         (ngModelChange)="onScoreChange(i, 'score1')"
                                     />
                                 </nz-col>
                                 <nz-col [nzSpan]="8">
                                     <nz-input-number
-                                        id="score-{{i}}-2"
+                                        id="score-{{ i }}-2"
                                         [(ngModel)]="gameScore.score2"
                                         nzMin="0"
                                         nzMax="10"
-                                        [ngModelOptions]="{standalone: true}"
+                                        [ngModelOptions]="{ standalone: true }"
                                         (ngModelChange)="onScoreChange(i, 'score2')"
                                     />
                                 </nz-col>
@@ -71,21 +69,23 @@ import { BehaviorSubject } from "rxjs";
             }
         </form>
     `,
-    styles: [`
-        nz-form-label {
-            text-align: right;
-            padding-right: 8px;
-        }
-        nz-input-number {
-            width: 100%;
-        }
+    styles: [
+        `
+            nz-form-label {
+                text-align: right;
+                padding-right: 8px;
+            }
+            nz-input-number {
+                width: 100%;
+            }
 
-        .participant-title {
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-    `],
+            .participant-title {
+                font-weight: bold;
+                text-align: center;
+                margin-bottom: 1rem;
+            }
+        `,
+    ],
 })
 export class UpdateMatchComponent {
     match = inject<MatchViewModel>(NZ_MODAL_DATA);
@@ -95,12 +95,12 @@ export class UpdateMatchComponent {
     constructor() {
         this.ref.updateConfig({
             // Override the Ok handler, to include the match on callback
-            nzOnOk: () => this.ref.close(this.match)
+            nzOnOk: () => this.ref.close(this.match),
         });
 
-        this.disableOk$$.subscribe(disabled => {
+        this.disableOk$$.subscribe((disabled) => {
             this.ref.updateConfig({
-                nzOkDisabled: disabled
+                nzOkDisabled: disabled,
             });
         });
 
@@ -113,9 +113,19 @@ export class UpdateMatchComponent {
             return;
         }
 
-        if (scoreType === 'score1' && currentScore.score1 !== undefined && currentScore.score1 >= 0 && currentScore.score1 <= 9) {
+        if (
+            scoreType === 'score1' &&
+            currentScore.score1 !== undefined &&
+            currentScore.score1 >= 0 &&
+            currentScore.score1 <= 9
+        ) {
             currentScore.score2 = 10;
-        } else if (scoreType === 'score2' && currentScore.score2 !== undefined && currentScore.score2 >= 0 && currentScore.score2 <= 9) {
+        } else if (
+            scoreType === 'score2' &&
+            currentScore.score2 !== undefined &&
+            currentScore.score2 >= 0 &&
+            currentScore.score2 <= 9
+        ) {
             currentScore.score1 = 10;
         }
 
@@ -126,11 +136,14 @@ export class UpdateMatchComponent {
         ) {
             if (currentScore.score1 === 10 && currentScore.score2 !== 10) {
                 currentScore.winner = 1;
-            } else if (currentScore.score2 === 10 && currentScore.score1 !== 10) {
+            } else if (
+                currentScore.score2 === 10 &&
+                currentScore.score1 !== 10
+            ) {
                 currentScore.winner = 2;
             }
         }
-        
+
         // Do not check for tie breaker in third game.
         if (gameIndex == 0 || gameIndex == 1) {
             this.checkTieBreaker();
