@@ -1,18 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject, TemplateRef, ViewChild } from "@angular/core";
+import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { SupabaseRepository } from "../domain/repositories/supabase.service";
 import { Match } from "../domain/entities/match.entity";
 import { CommonModule } from "@angular/common";
-import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, merge, of, shareReplay, startWith, Subject, switchMap } from "rxjs";
+import { combineLatest, filter, firstValueFrom, map, merge, of, shareReplay, startWith, Subject, switchMap } from "rxjs";
 import { ActivatedRoute } from "@angular/router";
 import { Participant } from "../domain/entities/participant.entity";
-import { loadingFromQuery, log, mergeToObject, sswitch } from "../utils/rx-utils";
+import { loadingFromQuery, mergeToObject, sswitch } from "../utils/rx-utils";
 import { MatchViewModel, RoundPageViewModel } from "../components/models/rounds.view-model";
 import { MatchesListComponent } from "../components/matches-list.component";
 import { NzButtonModule } from "ng-zorro-antd/button";
 import { NzIconModule } from "ng-zorro-antd/icon";
 import { RoundsNavigatorComponent } from "../components/rounds-nav.component";
 import { NzModalModule, NzModalService } from "ng-zorro-antd/modal";
-import { UpdateMatchComponent } from "../components/update-match.component";
+import { UpdateMatchComponent } from "../components/dialogs/update-match.component";
 
 const orderMatches = <T extends Match>(matches: T[]) => {
     return [...matches].sort(({order: a}, {order: b}) =>

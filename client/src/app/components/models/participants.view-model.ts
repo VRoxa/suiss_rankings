@@ -5,7 +5,6 @@ export type ParticipantViewModel = Participant & {
 };
 
 export type ParticipantsPageViewModel = {
-    showAddModal: boolean;
     loading: boolean;
     data: ParticipantViewModel[];
 }

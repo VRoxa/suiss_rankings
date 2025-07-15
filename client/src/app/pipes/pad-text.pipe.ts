@@ -4,15 +4,13 @@ import { Pipe, PipeTransform } from "@angular/core";
     name: 'pad',
 })
 export class PadTextPipe implements PipeTransform {
-    transform(value: string | number | null | undefined, length: number = 2, padChar: string = ' '): string {
-        if (value === 0) {
-            return ' 0';
-        }
-
-        if (!value) {
+    transform(value: string | number | null | undefined, length: number = 2, padChar: string = ' ', position: 'start' | 'end' = 'start'): string {
+        if (!value && value !== 0) {
             return Array.from({ length }).map(_ => padChar).join('');
         }
-
-        return value.toString().padStart(length, padChar);
+        
+        return position === 'start'
+            ? value.toString().padStart(length, padChar)
+            : value.toString().padEnd(length, padChar);
     }
 }

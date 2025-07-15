@@ -1,8 +1,8 @@
 import { Injectable, inject } from "@angular/core";
 import { createClient, SupabaseClient as Client } from "@supabase/supabase-js";
 import { environment } from "../../environments/environment";
-import { defer, from, map, Observable, shareReplay, startWith, switchMap, tap } from "rxjs";
-import { AddingEntity, Query, QueryResult, TableName } from "./types/supabase.types";
+import { defer, from, map, Observable, shareReplay, startWith, switchMap } from "rxjs";
+import { AddingEntity, Entity, Query, QueryResult, TableName } from "./types/supabase.types";
 import { DisposableSupabaseService } from "./disposable-supabase.service";
 
 @Injectable({
@@ -34,17 +34,25 @@ export class SupabaseRepository {
         return new DisposableSupabaseService(this.client);
     }
 
-    async add<TEntity>(tableName: string, record: AddingEntity<TEntity> | AddingEntity<TEntity>[]): Promise<any> {
-        const { data, error } = await this.client
+    async update<TEntity extends Entity>(tableName: TableName, record: TEntity): Promise<void> {
+        const { error } = await this.client
+            .from(tableName)
+            .update(record)
+            .eq('id', record.id);
+
+        if (!!error) {
+            console.error(`Error updating record ${record.id} to table ${tableName}`, error);
+        }
+    }
+
+    async add<TEntity>(tableName: TableName, record: AddingEntity<TEntity> | AddingEntity<TEntity>[]): Promise<void> {
+        const { error } = await this.client
             .from(tableName)
             .insert(record);
 
         if (!!error) {
             console.error(`Error inserting new record to ${tableName}`, error);
-            return null;
         }
-
-        return data;
     }
 
     getAll<TEntity>(tableName: TableName): Observable<QueryResult<TEntity>> {

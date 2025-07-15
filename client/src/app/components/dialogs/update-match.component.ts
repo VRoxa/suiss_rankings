@@ -1,5 +1,5 @@
 import { Component, inject } from "@angular/core";
-import { MatchViewModel } from "./models/rounds.view-model";
+import { MatchViewModel } from "../models/rounds.view-model";
 import { CommonModule } from "@angular/common";
 import { NzInputModule } from "ng-zorro-antd/input";
 import { NzInputNumberModule } from "ng-zorro-antd/input-number";

@@ -1,5 +1,9 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
+export type Entity = {
+    id: number;
+}
+
 export type TableName = 'participant' | 'match' | 'round';
 
 export type QueryResult<T> = {
