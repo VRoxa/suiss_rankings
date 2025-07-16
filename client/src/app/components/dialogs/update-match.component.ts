@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { NZ_MODAL_DATA, NzModalModule, NzModalRef } from 'ng-zorro-antd/modal';
 import { NzGridModule } from 'ng-zorro-antd/grid';
 import { BehaviorSubject } from 'rxjs';
+import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 
 @Component({
     selector: 'sr-update-match',
@@ -19,6 +20,7 @@ import { BehaviorSubject } from 'rxjs';
         NzFormModule,
         NzModalModule,
         NzGridModule,
+        NzCheckboxModule,
     ],
     template: `
         <form nz-form [nzLayout]="'horizontal'">
@@ -67,6 +69,23 @@ import { BehaviorSubject } from 'rxjs';
                     </nz-form-item>
                 }
             }
+
+            <nz-form-item [nzGutter]="16" nzAlign="middle">
+                <nz-form-control>
+                    <nz-row [nzGutter]="16">
+                        <!-- <nz-col [nzSpan]="8"> </nz-col> -->
+                        <nz-col [nzSpan]="24">
+                            <label nz-checkbox
+                                [ngModel]="!match.inProgress"
+                                (ngModelChange)="match.inProgress = !$event"
+                                [ngModelOptions]="{ standalone: true }"
+                            >
+                                Cruce terminado
+                            </label>
+                        </nz-col>
+                    </nz-row>
+                </nz-form-control>
+            </nz-form-item>
         </form>
     `,
     styles: [

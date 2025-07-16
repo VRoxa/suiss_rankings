@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { SupabaseRepository } from "../domain/repositories/supabase.service";
 import { Participant } from "../domain/entities/participant.entity";
-import { filter, firstValueFrom, map, scan, startWith } from "rxjs";
-import { mergeToObject } from "../utils/rx-utils";
+import { filter, firstValueFrom, map, merge, scan, startWith, Subject } from "rxjs";
+import { loadingFromQuery, mergeToObject } from "../utils/rx-utils";
 import { CommonModule } from "@angular/common";
 import { NzIconModule } from "ng-zorro-antd/icon";
 import { NzTypographyModule } from "ng-zorro-antd/typography";
@@ -15,6 +15,8 @@ import { NzPopconfirmModule } from "ng-zorro-antd/popconfirm";
 import { UpdateParticipantComponent, UpdateParticipantResult } from "../components/dialogs/update-participant.component";
 import { updateParticipant } from "../domain/services/update-participant.service";
 import { ExternalComponent } from "./abstractions/external";
+import { AddParticipantComponent } from "../components/dialogs/add-participant.component";
+import { addParticipant } from "../domain/services/add-participant.service";
 
 // TODO - What happens when a participant is eliminated during a knockout round,
 // Then in future rounds, another participant has less score (bc score can substract).
@@ -54,11 +56,13 @@ const toDifference = (diff: number) => {
     template: `
         @if(vm$ | async; as vm) {
             <div nz-flex [nzVertical]="true" nzAlign="flex-end" class="container">
+
+                <!-- Disabled when the # of participants is odd. -->
                 <button nz-button
                     nzType="primary"
                     nzShape="round"
                     class="next-round__btn"
-
+                    [disabled]="!!(vm.data.length % 2)"
                     nz-popconfirm
                     nzPopconfirmTitle="¿Empezar torneo con ({{ vm.data.length }}) participantes?"
                     nzPopconfirmPlacement="bottomLeft"
@@ -67,7 +71,7 @@ const toDifference = (diff: number) => {
                 >
                     Empezar torneo
                     <nz-icon nzType="vertical-left"></nz-icon>
-                </button>   
+                </button>
 
                 <sr-participants-list
                     [vm]="vm"
@@ -77,14 +81,14 @@ const toDifference = (diff: number) => {
                 <button nz-button
                     nzType="primary" nzShape="round"
                     class="flex-item"
+                    [disabled]="vm.data.length >= 12"
                     (click)="openAddParticipant()"
                 >
                     <nz-icon nzType="plus"></nz-icon>
-                    Añadir participante
+                    Añadir pareja
                 </button>
             </div>
         }
-
     `,
     styles: [`
         .container {
@@ -113,12 +117,13 @@ export class ParticipantsPage extends ExternalComponent {
     private readonly repository = inject(SupabaseRepository);
     private readonly modal = inject(NzModalService);
     
+    manualLoading$$ = new Subject<boolean>();
     participants$ = this.repository.getAll<Participant>('participant');
     
     vm$ = mergeToObject<ParticipantsPageViewModel>({
-        loading: this.participants$.pipe(
-            map(({ loading }) => loading),
-            startWith(true),
+        loading: merge(
+            loadingFromQuery(this.participants$),
+            this.manualLoading$$,
         ),
         data: this.participants$.pipe(
             map(({ data }) => data),
@@ -126,16 +131,18 @@ export class ParticipantsPage extends ExternalComponent {
             map(data => data.map<ParticipantViewModel>(x => ({...x, difference: 'equal'}))),
             map(orderByScoreDesc),
             startWith([]),
-            scan((acc, curr) => {
-                if (!acc.length) {
-                    return curr.map(x => ({...x, difference: 'equal'}));
-                }
+
+            // TODO (NTH) - Calculate up/down based on previous rounds...
+            // scan((acc, curr) => {
+            //     if (!acc.length) {
+            //         return curr.map(x => ({...x, difference: 'equal'}));
+            //     }
                 
-                return curr.map((x, i) => ({
-                    ...x,
-                    difference: toDifference(i - acc.findIndex(({ id }) => id === x.id)),
-                }));
-            }),
+            //     return curr.map((x, i) => ({
+            //         ...x,
+            //         difference: toDifference(i - acc.findIndex(({ id }) => id === x.id)),
+            //     }));
+            // }),
         ),
     });
 
@@ -143,8 +150,31 @@ export class ParticipantsPage extends ExternalComponent {
         console.info('Starting tournament...', participants);
     }
 
-    public openAddParticipant() {
-        console.log('Adding participant...')
+    public async openAddParticipant() {
+        const ref = this.modal.create<
+            AddParticipantComponent,
+            never,
+            Omit<Participant, 'id'>
+        >({
+            nzContent: AddParticipantComponent,
+            nzTitle: 'Añadir pareja',
+            nzOkText: 'Añadir',
+        });
+
+        const result = await firstValueFrom(ref.afterClose);
+        if (!result) {
+            return;
+        }
+
+        this.manualLoading$$.next(true);
+        this.toService(async () => {
+            try {
+                await addParticipant(result);
+            }
+            finally {
+                this.manualLoading$$.next(false);
+            }
+        });
     }
 
     public async openUpdateParticipant(participant: ParticipantViewModel) {
@@ -153,7 +183,7 @@ export class ParticipantsPage extends ExternalComponent {
             ParticipantViewModel,
             UpdateParticipantResult
         >({
-            nzTitle: 'Actualizar participante',
+            nzTitle: 'Actualizar pareja',
             nzContent: UpdateParticipantComponent,
             nzData: {...participant},
         });

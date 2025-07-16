@@ -2,6 +2,8 @@ import {
     ChangeDetectionStrategy,
     Component,
     computed,
+    inject,
+    Injector,
     input,
 } from '@angular/core';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
@@ -13,65 +15,79 @@ import {
     calculateScore,
     CountFor,
 } from '../domain/services/score-calculator.service';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { log, mergeToObject, takeElementAt } from '../utils/rx-utils';
+import { combineLatest, map } from 'rxjs';
+import { isPromise } from 'rxjs/internal/util/isPromise';
+
+interface MatchCardComponentViewModel {
+    match: MatchViewModel;
+    score1: number;
+    score2: number;
+    winner: 0 | 1 | 2;
+}
 
 @Component({
     selector: 'sr-match-card',
     imports: [CommonModule, NzCardModule, NzDividerModule, PadTextPipe],
     template: `
-        <div
-            class="round-card"
-            [ngClass]="{ 'finished-match': !match().inProgress }"
-        >
-            <div class="round-card__teams">
-                <div class="teams__team1" [ngClass]="{ winner: this.winner1 }">
-                    @if (!match().inProgress) {
-                        <span class="team-score">{{ score1() }}</span>
-                    }
-                    <span>
-                        {{ match().team1.name }}
-                    </span>
+        @if (vm$ | async; as vm) {
+            <div
+                class="round-card"
+                [ngClass]="{ 'finished-match': !vm.match.inProgress }"
+            >
+                <div class="round-card__teams">
+                    <div class="teams__team1" [ngClass]="{ winner: vm.winner === 1 }">
+                        @if (!vm.match.inProgress) {
+                            <span class="team-score">{{ vm.score1 }}</span>
+                        }
+                        <span>
+                            {{ vm.match.team1.name }}
+                        </span>
+                    </div>
+                    <nz-divider nzType="horizontal"></nz-divider>
+                    <div class="teams__team2" [ngClass]="{ winner: vm.winner === 2 }">
+                        @if (!vm.match.inProgress) {
+                            <span class="team-score">{{ vm.score2 }}</span>
+                        }
+                        <span>
+                            {{ vm.match.team2.name }}
+                        </span>
+                    </div>
                 </div>
-                <nz-divider nzType="horizontal"></nz-divider>
-                <div class="teams__team2" [ngClass]="{ winner: this.winner2 }">
-                    @if (!match().inProgress) {
-                    <span class="team-score">{{ score2() }}</span>
-                    }
-                    <span>
-                        {{ match().team2.name }}
-                    </span>
+
+                <nz-divider nzType="vertical"></nz-divider>
+
+                <div class="round-card__scores">
+                    <div class="scores__team1">
+                        @for (score of vm.match.score; track $index; let i = $index) {
+                            <div
+                                [class]="[
+                                    'scores__team1__' + i,
+                                    score?.winner === 1 ? 'winner' : ''
+                                ]"
+                            >
+                                <span>{{ score?.score1 ?? '' | pad }}</span>
+                            </div>
+                        }
+                    </div>
+                    <nz-divider nzType="horizontal"></nz-divider>
+                    <div class="scores__team2">
+                        @for (score of vm.match.score; track $index; let i = $index) {
+                            <div
+                                [class]="[
+                                    'scores__team1__' + i,
+                                    score?.winner === 2 ? 'winner' : ''
+                                ]"
+                            >
+                                <span>{{ score?.score2 ?? '' | pad }}</span>
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
-
-            <nz-divider nzType="vertical"></nz-divider>
-
-            <div class="round-card__scores">
-                <div class="scores__team1">
-                    @for (score of match().score; track $index; let i = $index) {
-                        <div
-                            [class]="[
-                                'scores__team1__' + i,
-                                score?.winner === 1 ? 'winner' : ''
-                            ]"
-                        >
-                            <span>{{ score?.score1 ?? '' | pad }}</span>
-                        </div>
-                    }
-                </div>
-                <nz-divider nzType="horizontal"></nz-divider>
-                <div class="scores__team2">
-                    @for (score of match().score; track $index; let i = $index) {
-                        <div
-                            [class]="[
-                                'scores__team1__' + i,
-                                score?.winner === 2 ? 'winner' : ''
-                            ]"
-                        >
-                            <span>{{ score?.score2 ?? '' | pad }}</span>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
+        }
+        
     `,
     styles: [
         `
@@ -144,29 +160,33 @@ import {
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MatchCardComponent {
+    private readonly injector = inject(Injector);
     readonly match = input.required<MatchViewModel>();
+    match$ = toObservable(this.match, { injector: this.injector });
 
-    score1 = computed(() => {
-        return calculateScore(this.match().score, CountFor.One);
-    });
+    scores$ = this.match$.pipe(
+        map(({score}) => [
+            calculateScore(score, CountFor.One),
+            calculateScore(score, CountFor.Two),
+        ]),
+    );
 
-    score2 = computed(() => {
-        return calculateScore(this.match().score, CountFor.Two);
-    });
+    vm$ = mergeToObject<MatchCardComponentViewModel>({
+        match: this.match$,
+        score1: this.scores$.pipe(takeElementAt(0)),
+        score2: this.scores$.pipe(takeElementAt(1)),
+        winner: combineLatest([
+            this.match$.pipe(map(({inProgress}) => inProgress)),
+            this.scores$,
+        ]).pipe(
+            map(([inProgress, [score1, score2]]) => {
+                if (inProgress) {
+                    return 0;
+                }
 
-    get winner1(): boolean {
-        return (
-            this.match()
-                .score.filter((x) => !!x)
-                .filter(({ winner }) => winner === 1).length === 2
-        );
-    }
-
-    get winner2(): boolean {
-        return (
-            this.match()
-                .score.filter((x) => !!x)
-                .filter(({ winner }) => winner === 2).length === 2
-        );
-    }
+                // TODO - review for best loser and worst winner.
+                return score1 > score2 ? 1 : 2;
+            }),
+        )
+    }).pipe(log('match card'));
 }

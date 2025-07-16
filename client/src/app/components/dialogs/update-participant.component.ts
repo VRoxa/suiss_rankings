@@ -42,6 +42,7 @@ export interface UpdateParticipantResult {
 
         <ng-template #footer>
             <div class="modal-footer">
+                <!-- TODO - Add confirm popup -->
                 <button nz-button
                     nzType="primary"
                     nzDanger

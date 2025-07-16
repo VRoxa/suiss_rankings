@@ -32,6 +32,8 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { RoundsNavigatorComponent } from '../components/rounds-nav.component';
 import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
 import { UpdateMatchComponent } from '../components/dialogs/update-match.component';
+import { ExternalComponent } from './abstractions/external';
+import { updateMatch } from '../domain/services/update-match.service';
 
 const orderMatches = <T extends Match>(matches: T[]) => {
     return [...matches].sort(({ order: a }, { order: b }) => a - b);
@@ -49,25 +51,25 @@ const orderMatches = <T extends Match>(matches: T[]) => {
     ],
     template: `
         @if (vm$ | async; as vm) {
-        <sr-rounds-nav></sr-rounds-nav>
+            <sr-rounds-nav></sr-rounds-nav>
 
-        <div class="next-round">
-            <button
-                nz-button
-                nzType="primary"
-                nzShape="round"
-                class="next-round__btn"
-                [disabled]="!vm.isRoundFinished"
-            >
-                Lanzar siguiente ronda
-                <nz-icon nzType="vertical-left"></nz-icon>
-            </button>
-        </div>
+            <div class="next-round">
+                <button
+                    nz-button
+                    nzType="primary"
+                    nzShape="round"
+                    class="next-round__btn"
+                    [disabled]="!vm.isRoundFinished"
+                >
+                    Lanzar siguiente ronda
+                    <nz-icon nzType="vertical-left"></nz-icon>
+                </button>
+            </div>
 
-        <sr-matches-list
-            [vm]="vm"
-            (onMatchClicked)="openUpdateMatch($event)"
-        ></sr-matches-list>
+            <sr-matches-list
+                [vm]="vm"
+                (onMatchClicked)="openUpdateMatch($event)"
+            ></sr-matches-list>
         }
     `,
     styles: [
@@ -81,10 +83,12 @@ const orderMatches = <T extends Match>(matches: T[]) => {
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RoundPage {
+export class RoundPage extends ExternalComponent {
+
     private readonly repository = inject(SupabaseRepository);
     private readonly route = inject(ActivatedRoute);
     private readonly modal = inject(NzModalService);
+
     private readonly manualLoading$$ = new Subject<boolean>();
 
     id$ = this.route.paramMap.pipe(
@@ -100,10 +104,10 @@ export class RoundPage {
                     data:
                         query.data?.filter((match) => match.round === +id!) ??
                         null,
-                }))
+                })),
             )
         ),
-        shareReplay({ bufferSize: 1, refCount: true })
+        shareReplay({ bufferSize: 1, refCount: true }),
     );
 
     source$ = combineLatest([
@@ -126,7 +130,7 @@ export class RoundPage {
         }),
         map((matches) => orderMatches(matches)),
         shareReplay(1),
-        startWith([])
+        startWith([]),
     );
 
     vm$ = mergeToObject<RoundPageViewModel>({
@@ -136,34 +140,43 @@ export class RoundPage {
             sswitch(
                 ({ length }) => !!length,
                 (matches) => of(matches.every(({ inProgress }) => inProgress)),
-                () => of(false)
-            )
+                () => of(false),
+            ),
         ),
     });
 
     public async openUpdateMatch(match: MatchViewModel) {
-        const copy = (m: MatchViewModel) => {
+        const copy = (m: MatchViewModel): MatchViewModel => {
             return {
                 ...m,
-                score: m.score.map((x) => ({ ...x })),
+                score: m.score.map((x) => ({ ...x })) as Match['score'],
             };
         };
 
-        const ref = this.modal.create({
+        const ref = this.modal.create<
+            UpdateMatchComponent,
+            MatchViewModel,
+            MatchViewModel
+        >({
             nzTitle: 'Actualizar cruce',
             nzContent: UpdateMatchComponent,
             nzData: copy(match),
         });
 
         const result = await firstValueFrom(ref.afterClose);
-        console.log('update match result', result);
         if (!result) {
             // Canceled
             return;
         }
 
-        // TODO - update match
         this.manualLoading$$.next(true);
-        setTimeout(() => this.manualLoading$$.next(false), 1000);
+        this.toService(async () => {
+            try {
+                await updateMatch(result);
+            }
+            finally {
+                this.manualLoading$$.next(false);
+            }
+        });
     }
 }

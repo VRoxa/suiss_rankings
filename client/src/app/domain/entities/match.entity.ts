@@ -1,6 +1,6 @@
 
 export interface MatchScore {
-    winner: number;
+    winner: 0 | 1 | 2;
     score1: number;
     score2: number;
 }
