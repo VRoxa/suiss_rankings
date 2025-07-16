@@ -9,6 +9,7 @@ import { NZ_MODAL_DATA, NzModalModule, NzModalRef } from 'ng-zorro-antd/modal';
 import { NzGridModule } from 'ng-zorro-antd/grid';
 import { BehaviorSubject } from 'rxjs';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
+import { MatchScore } from '../../domain/entities/match.entity';
 
 @Component({
     selector: 'sr-update-match',
@@ -186,10 +187,35 @@ export class UpdateMatchComponent {
                 score2: 0,
             };
         }
+        else {
+            this.match.score[2] = null;
+        }
     }
 
     private checkMatchValidity() {
-        const valid = this.match.score.every((x) => !x || x.winner !== 0);
+        const isValid = (score: MatchScore | null): boolean => {
+            if (!score) {
+                // Null score is OK
+                return true;
+            }
+
+            const { score1, score2 } = score;
+            if (score1 === 10 && score2 === 10) {
+                return false;
+            }
+
+            if (score1 !== 10 && score2 !== 10) {
+                return false;
+            }
+
+            if (score.winner !== 0) {
+                return true;
+            }
+
+            return true;
+        }
+
+        const valid = this.match.score.every(isValid);
         this.disableOk$$.next(!valid);
     }
 }

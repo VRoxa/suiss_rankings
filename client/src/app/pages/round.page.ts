@@ -149,7 +149,7 @@ export class RoundPage extends ExternalComponent {
         const copy = (m: MatchViewModel): MatchViewModel => {
             return {
                 ...m,
-                score: m.score.map((x) => ({ ...x })) as Match['score'],
+                score: m.score.map((x) => !!x ? ({ ...x }) : null) as Match['score'],
             };
         };
 
