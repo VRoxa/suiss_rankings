@@ -139,7 +139,7 @@ export class RoundPage extends ExternalComponent {
         isRoundFinished: this.mappedMatches$.pipe(
             sswitch(
                 ({ length }) => !!length,
-                (matches) => of(matches.every(({ inProgress }) => inProgress)),
+                (matches) => of(matches.every(({ inProgress }) => !inProgress)),
                 () => of(false),
             ),
         ),

@@ -8,9 +8,13 @@ const GOAL_DIFFERENCE = 10;
 
 export enum CountFor { One = 1, Two = 2 }
 
+const hasFinished = (score: Match['score'][number]): score is NonNullable<Match['score'][number]> => {
+    return score?.winner !== undefined && score.winner !== 0;
+}
+
 export const calculateScore = (score: Match['score'], countFor: CountFor): number => {
     const arrangedScore = score
-        .filter(x => !!x)
+        .filter(hasFinished)
         .map(({ score1, score2, winner }) => ({
             inFavor: countFor === CountFor.One ? score1 : score2,
             against: countFor === CountFor.One ? score2 : score1,

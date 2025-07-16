@@ -132,6 +132,10 @@ export class UpdateMatchComponent {
             return;
         }
 
+        // If user leave the input blank, it should count as 0.
+        currentScore.score1 ??= 0;
+        currentScore.score2 ??= 0;
+
         if (
             scoreType === 'score1' &&
             currentScore.score1 !== undefined &&

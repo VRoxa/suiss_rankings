@@ -24,8 +24,6 @@ export const routes: Routes = [
                     .order('id', { ascending: false })
                     .limit(1);
 
-            console.info('last round', lastRound);
-
             return `round/${lastRound![0].id}`;
         },
     },

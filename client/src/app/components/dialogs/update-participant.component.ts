@@ -5,6 +5,7 @@ import { NzInputModule } from "ng-zorro-antd/input";
 import { FormsModule } from "@angular/forms";
 import { ParticipantViewModel } from "../models/participants.view-model";
 import { NzButtonModule } from "ng-zorro-antd/button";
+import { NzPopconfirmModule } from "ng-zorro-antd/popconfirm";
 
 type UpdateParticipantAction = 'update' | 'delete' | 'none';
 
@@ -19,7 +20,8 @@ export interface UpdateParticipantResult {
         CommonModule,
         FormsModule,
         NzInputModule,
-        NzButtonModule
+        NzButtonModule,
+        NzPopconfirmModule,
     ],
     template: `
         <nz-input-group nzAddOnBefore="Nombre">
@@ -42,13 +44,32 @@ export interface UpdateParticipantResult {
 
         <ng-template #footer>
             <div class="modal-footer">
-                <!-- TODO - Add confirm popup -->
-                <button nz-button
-                    nzType="primary"
-                    nzDanger
-                >
-                    Eliminar
-                </button>
+                @if (participant.eliminated) {
+                    <button nz-button
+                        nzType="primary"
+                        nzDanger
+
+                        nz-popconfirm
+                        nzPopconfirmTitle="¿Readmitir a {{ participant.name }}?"
+                        nzPopconfirmPlacement="bottomLeft"
+                        (nzOnConfirm)="close('delete')"
+                    >
+                        Readmitir
+                    </button>
+                }
+                @else {
+                    <button nz-button
+                        nzType="primary"
+                        nzDanger
+
+                        nz-popconfirm
+                        nzPopconfirmTitle="¿Eliminar a {{ participant.name }}?"
+                        nzPopconfirmPlacement="bottomLeft"
+                        (nzOnConfirm)="close('delete')"
+                    >
+                        Eliminar
+                    </button>
+                }
 
                 <div>
                     <button nz-button
@@ -84,7 +105,6 @@ export class UpdateParticipantComponent implements AfterViewInit {
     footer!: TemplateRef<any>;
 
     ngAfterViewInit(): void {
-        console.log('footer', this.footer);
         this.ref.updateConfig({
             nzFooter: this.footer
         });

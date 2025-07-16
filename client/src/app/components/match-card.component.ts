@@ -188,5 +188,5 @@ export class MatchCardComponent {
                 return score1 > score2 ? 1 : 2;
             }),
         )
-    }).pipe(log('match card'));
+    });
 }

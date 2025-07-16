@@ -4,7 +4,6 @@ import { Round } from "../domain/entities/round.entity";
 import { CommonModule } from "@angular/common";
 import { filter, map } from "rxjs";
 import { RouterModule } from "@angular/router";
-import { log } from "../utils/rx-utils";
 import { NzTabsModule } from "ng-zorro-antd/tabs";
 
 @Component({
@@ -36,6 +35,5 @@ export class RoundsNavigatorComponent {
     rounds$ = this.repository.getAll<Round>('round').pipe(
         map(({ data }) => data),
         filter(x => !!x),
-        log('rounds')
     );
 }

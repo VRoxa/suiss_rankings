@@ -114,6 +114,26 @@ export class App {
         <i>que jugadores con resultados similares se enfrenten entre sí</i
         >.<br /><br />
 
+        <h4><b>Rondas</b></h4>
+        Se jugarán un total de seis rondas.<br />
+        Después de cada ronda, las parejas se clasificarán según su resultado
+        (ver sección <a>Puntuación</a>).<br /><br />
+
+        Al finalizar la cuarta ronda, las cuatro parejas con menor puntuación
+        serán eliminadas por <i>knockout</i>.<br /><br />
+        
+        Al finalizar la sexta ronda se
+        determinará la clasificación del torneo en base a los puntos acumulados
+        de cada pareja.<br /><br />
+
+        <h4><b>Emparejamientos</b></h4>
+        Una vez establecida la clasificación después de cada ronda, se
+        emparejará a la pareja en la posición #1 con la pareja en la
+        posición #2, #3 con #4, #5 con #6, etc.<br /><br />
+
+        Los enfrentamientos de la primera ronda son decididos completamente
+        al azar.<br /><br />
+
         <h4><b>Puntuación</b></h4>
         Cada ronda puntuará según el resultado, siguiendo los siguientes
         criterios:<br />
@@ -216,17 +236,7 @@ export class App {
 
         En caso de <code>9-9</code> en la partida decisiva, la victoria se
         decidirá a diferencia de dos goles. El resultado final computará como
-        <code>10-9</code>.<br /><br />
-
-        <h4><b>Rondas</b></h4>
-        Se jugarán un total de seis rondas.<br /><br />
-
-        Al finalizar la cuarta ronda, las cuatro parejas con menor puntuación
-        serán eliminadas por <i>knockout</i>.<br /><br />
-        
-        Al finalizar la sexta ronda se
-        determinará la clasificación del torneo en base a los puntos acumulados
-        de cada pareja.
+        <code>10-9</code>.
     `,
     styles: [
         `

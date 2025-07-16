@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { SupabaseRepository } from "../domain/repositories/supabase.service";
 import { Participant } from "../domain/entities/participant.entity";
-import { filter, firstValueFrom, map, merge, scan, startWith, Subject } from "rxjs";
+import { filter, firstValueFrom, map, merge, startWith, Subject } from "rxjs";
 import { loadingFromQuery, mergeToObject } from "../utils/rx-utils";
 import { CommonModule } from "@angular/common";
 import { NzIconModule } from "ng-zorro-antd/icon";
@@ -78,15 +78,17 @@ const toDifference = (diff: number) => {
                     (onParticipantClicked)="openUpdateParticipant($event)"
                 ></sr-participants-list>
 
-                <button nz-button
-                    nzType="primary" nzShape="round"
-                    class="flex-item"
-                    [disabled]="vm.data.length >= 12"
-                    (click)="openAddParticipant()"
-                >
-                    <nz-icon nzType="plus"></nz-icon>
-                    Añadir pareja
-                </button>
+                @if (!vm.loading) {
+                    <button nz-button
+                        nzType="primary" nzShape="round"
+                        class="flex-item"
+                        [disabled]="vm.data.length >= 12"
+                        (click)="openAddParticipant()"
+                    >
+                        <nz-icon nzType="plus"></nz-icon>
+                        Añadir pareja
+                    </button>
+                }
             </div>
         }
     `,
@@ -188,21 +190,27 @@ export class ParticipantsPage extends ExternalComponent {
             nzData: {...participant},
         });
 
-        const r = await firstValueFrom(ref.afterClose);
-        if (!r) {
+        const res = await firstValueFrom(ref.afterClose);
+        if (!res) {
             return;
         }
 
-        let { action, participant: result } = r;
+        this.manualLoading$$.next(true);
+        let { action, participant: result } = res;
         this.toService(async () => {
             if (action === 'delete') {
                 result = {
                     ...participant,
-                    eliminated: true,
+                    eliminated: !participant.eliminated, // Toggle elimination
                 };
             }
             
-            await updateParticipant(result);
+            try {
+                await updateParticipant(result);
+            }
+            finally {
+                this.manualLoading$$.next(false);
+            }
         });
     }
 }
