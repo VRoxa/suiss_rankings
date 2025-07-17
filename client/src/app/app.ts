@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { RouterModule, RouterOutlet } from '@angular/router';
+import { Router, RouterModule, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { NzMenuModule } from 'ng-zorro-antd/menu';
 import { NzIconModule } from 'ng-zorro-antd/icon';
@@ -39,6 +39,24 @@ import { NzTableModule } from 'ng-zorro-antd/table';
                 >
                     <nz-icon nzType="question-o"></nz-icon>
                 </button>
+
+                <button
+                    nz-button
+                    nzSize="small"
+                    nzShape="circle"
+                    (click)="openSettingsModal()"
+                >
+                    <nz-icon nzType="setting"></nz-icon>
+                </button>
+
+                <button
+                    nz-button
+                    nzSize="small"
+                    nzShape="circle"
+                    (click)="checkAdminAccess()"
+                >
+                    <nz-icon nzType="user-o"></nz-icon>
+                </button>
             </div>
         </div>
 
@@ -76,6 +94,10 @@ import { NzTableModule } from 'ng-zorro-antd/table';
 
                 &__buttons {
                     margin-right: 1rem;
+
+                    button {
+                        margin: 0 0.5rem;
+                    }
                 }
             }
         `,
@@ -84,6 +106,7 @@ import { NzTableModule } from 'ng-zorro-antd/table';
 })
 export class App {
     readonly modal = inject(NzModalService);
+    readonly router = inject(Router);
 
     openInfoModal() {
         const ref = this.modal.create({
@@ -101,6 +124,14 @@ export class App {
                 overflowY: 'auto',
             },
         });
+    }
+
+    openSettingsModal() {
+        console.warn('Open settings panel [WIP]');
+    }
+
+    checkAdminAccess() {
+        this.router.navigate(['/access']);
     }
 }
 
