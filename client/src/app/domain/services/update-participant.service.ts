@@ -10,7 +10,8 @@ export const updateParticipant = async (participant: ParticipantViewModel): Prom
         id: participant.id,
         name: participant.name,
         score: participant.score,
-        eliminated: participant.eliminated
+        eliminated: participant.eliminated,
+        lastRoundScored: participant.lastRoundScored
     }
 
     await repository.update('participant', record);

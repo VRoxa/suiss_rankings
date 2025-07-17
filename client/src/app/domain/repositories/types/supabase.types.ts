@@ -14,4 +14,4 @@ export type QueryResult<T> = {
 export type AddingEntity<TEntity> = Omit<TEntity, 'id'>;
 
 export type ClientFromType = ReturnType<SupabaseClient['from']>;
-export type Query = (builder: ClientFromType) => ReturnType<ClientFromType['select']> | ReturnType<ReturnType<ClientFromType['select']>['single']>
+export type Query = (builder: ClientFromType) => ReturnType<ClientFromType['select']>

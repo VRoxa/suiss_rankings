@@ -40,7 +40,8 @@ export class AddParticipantComponent {
     participant: AddingEntity<Participant> = {
         name: '',
         score: 0,
-        eliminated: false
+        eliminated: false,
+        lastRoundScored: 0,
     };
 
     constructor() {

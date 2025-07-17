@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { SupabaseRepository } from "../domain/repositories/supabase.service";
 import { Participant } from "../domain/entities/participant.entity";
-import { filter, firstValueFrom, map, merge, startWith, Subject } from "rxjs";
-import { loadingFromQuery, mergeToObject } from "../utils/rx-utils";
+import { filter, firstValueFrom, map, merge, of, startWith, Subject } from "rxjs";
+import { loadingFromQuery, mergeToObject, sswitch } from "../utils/rx-utils";
 import { CommonModule } from "@angular/common";
 import { NzIconModule } from "ng-zorro-antd/icon";
 import { NzTypographyModule } from "ng-zorro-antd/typography";
@@ -17,6 +17,8 @@ import { updateParticipant } from "../domain/services/update-participant.service
 import { ExternalComponent } from "./abstractions/external";
 import { AddParticipantComponent } from "../components/dialogs/add-participant.component";
 import { addParticipant } from "../domain/services/add-participant.service";
+import { Round } from "../domain/entities/round.entity";
+import { startingRound } from "../domain/services/next-round.service";
 
 // TODO - What happens when a participant is eliminated during a knockout round,
 // Then in future rounds, another participant has less score (bc score can substract).
@@ -62,12 +64,13 @@ const toDifference = (diff: number) => {
                     nzType="primary"
                     nzShape="round"
                     class="next-round__btn"
-                    [disabled]="!!(vm.data.length % 2)"
+                    [disabled]="!!(vm.data.length % 2) || !vm.canStart"
+                    
                     nz-popconfirm
                     nzPopconfirmTitle="¿Empezar torneo con ({{ vm.data.length }}) participantes?"
                     nzPopconfirmPlacement="bottomLeft"
                     nzIcon="question-circle-o"
-                    (nzOnConfirm)="startTournament(vm.data)"
+                    (nzOnConfirm)="startTournament()"
                 >
                     Empezar torneo
                     <nz-icon nzType="vertical-left"></nz-icon>
@@ -121,6 +124,7 @@ export class ParticipantsPage extends ExternalComponent {
     
     manualLoading$$ = new Subject<boolean>();
     participants$ = this.repository.getAll<Participant>('participant');
+    rounds$ = this.repository.getAll<Round>('round');
     
     vm$ = mergeToObject<ParticipantsPageViewModel>({
         loading: merge(
@@ -146,10 +150,24 @@ export class ParticipantsPage extends ExternalComponent {
             //     }));
             // }),
         ),
+        canStart: this.rounds$.pipe(
+            map(({ data }) => data),
+            map((rounds) => (rounds?.length ?? -1) === 0),
+            startWith(false),
+        )
     });
 
-    public startTournament(participants: Participant[]) {
-        console.info('Starting tournament...', participants);
+    public async startTournament() {
+        this.manualLoading$$.next(true);
+        this.toService(async () => {
+            try {
+                await startingRound();
+                // TODO - navigate to first round
+            }
+            finally {
+                this.manualLoading$$.next(false);
+            }
+        });
     }
 
     public async openAddParticipant() {

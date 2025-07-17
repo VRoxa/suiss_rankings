@@ -6,6 +6,7 @@ import {
     combineLatest,
     filter,
     firstValueFrom,
+    from,
     map,
     merge,
     of,
@@ -18,7 +19,6 @@ import { ActivatedRoute } from '@angular/router';
 import { Participant } from '../domain/entities/participant.entity';
 import {
     loadingFromQuery,
-    log,
     mergeToObject,
     sswitch,
 } from '../utils/rx-utils';
@@ -34,6 +34,9 @@ import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
 import { UpdateMatchComponent } from '../components/dialogs/update-match.component';
 import { ExternalComponent } from './abstractions/external';
 import { updateMatch } from '../domain/services/update-match.service';
+import { nextRound } from '../domain/services/next-round.service';
+import { updateParticipantsScore } from '../domain/services/update-participants-score.service';
+import { Round } from '../domain/entities/round.entity';
 
 const orderMatches = <T extends Match>(matches: T[]) => {
     return [...matches].sort(({ order: a }, { order: b }) => a - b);
@@ -53,18 +56,34 @@ const orderMatches = <T extends Match>(matches: T[]) => {
         @if (vm$ | async; as vm) {
             <sr-rounds-nav></sr-rounds-nav>
 
-            <div class="next-round">
-                <button
-                    nz-button
-                    nzType="primary"
-                    nzShape="round"
-                    class="next-round__btn"
-                    [disabled]="!vm.isRoundFinished"
-                >
-                    Lanzar siguiente ronda
-                    <nz-icon nzType="vertical-left"></nz-icon>
-                </button>
-            </div>
+            @if (vm.isCurrentRound) {
+                <div class="next-round">
+    
+                    <button
+                        nz-button
+                        nzType="primary"
+                        nzShape="round"
+                        class="next-round__btn"
+                        [disabled]="!vm.isRoundFinished"
+                        (click)="updateScores(vm.matches)"
+                    >
+                        Actualizar puntuación
+                        <nz-icon nzType="reload-o"></nz-icon>
+                    </button>
+    
+                    <button
+                        nz-button
+                        nzType="primary"
+                        nzShape="round"
+                        class="next-round__btn"
+                        [disabled]="!vm.isRoundFinished"
+                        (click)="nextRound()"
+                    >
+                        Lanzar siguiente ronda
+                        <nz-icon nzType="vertical-left"></nz-icon>
+                    </button>
+                </div>
+            }
 
             <sr-matches-list
                 [vm]="vm"
@@ -77,6 +96,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
             .next-round {
                 display: flex;
                 flex-direction: row-reverse;
+                justify-content: space-between;
                 margin: 0.5rem;
             }
         `,
@@ -136,12 +156,23 @@ export class RoundPage extends ExternalComponent {
     vm$ = mergeToObject<RoundPageViewModel>({
         loading: merge(loadingFromQuery(this.source$), this.manualLoading$$),
         matches: this.mappedMatches$,
+        isCurrentRound: combineLatest([
+            this.id$,
+            from(this.repository.disposable.getAll<Round>('round'))
+        ]).pipe(
+            map(([id, rounds]) => {
+                const lastRound = Math.max(...rounds.map((x) => x.id));
+                return +(id ?? '0') === lastRound;
+            }),
+            startWith(false),
+        ),
         isRoundFinished: this.mappedMatches$.pipe(
             sswitch(
                 ({ length }) => !!length,
                 (matches) => of(matches.every(({ inProgress }) => !inProgress)),
                 () => of(false),
             ),
+            startWith(false),
         ),
     });
 
@@ -173,6 +204,38 @@ export class RoundPage extends ExternalComponent {
         this.toService(async () => {
             try {
                 await updateMatch(result);
+            }
+            finally {
+                this.manualLoading$$.next(false);
+            }
+        });
+    }
+
+    public async updateScores(matches: MatchViewModel[]) {
+        const rawMatches = matches.map((x): Match => ({
+            ...x,
+            team1: x.team1.id,
+            team2: x.team2.id,
+        }));
+
+        this.manualLoading$$.next(true);
+        this.toService(async () => {
+            try {
+                await updateParticipantsScore(rawMatches);
+            }
+            finally {
+                this.manualLoading$$.next(false);
+            }
+        });
+    }
+
+    public async nextRound() {
+        this.manualLoading$$.next(true);
+        this.toService(async () => {
+            try {
+                await nextRound();
+
+                // TODO - Navigate to next round URL
             }
             finally {
                 this.manualLoading$$.next(false);

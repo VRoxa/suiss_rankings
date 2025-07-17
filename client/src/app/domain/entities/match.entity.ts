@@ -13,6 +13,9 @@ export interface Match {
 
     team1: number;
     team2: number;
+
+    totalScore1: number;
+    totalScore2: number;
     
     score: [
         MatchScore,

@@ -18,13 +18,14 @@ export const routes: Routes = [
         path: 'round',
         redirectTo: async () => {
             const repository = inject(SupabaseRepository);
-            const { data: lastRound } = await repository.disposable.raw
+            const { data: rounds } = await repository.disposable.raw
                     .from('round')
                     .select('id')
                     .order('id', { ascending: false })
                     .limit(1);
 
-            return `round/${lastRound![0].id}`;
+            const [lastRound] = rounds ?? [];
+            return `round/${lastRound?.id ?? 0}`;
         },
     },
     {

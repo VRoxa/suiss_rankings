@@ -7,4 +7,5 @@ export type ParticipantViewModel = Participant & {
 export type ParticipantsPageViewModel = {
     loading: boolean;
     data: ParticipantViewModel[];
+    canStart: boolean;
 }

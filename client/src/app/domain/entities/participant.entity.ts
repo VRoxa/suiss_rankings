@@ -4,4 +4,7 @@ export interface Participant {
     name: string;
     score: number;
     eliminated: boolean;
+
+    // Foreign key to round::id
+    lastRoundScored: number;
 }

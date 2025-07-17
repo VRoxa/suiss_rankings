@@ -45,14 +45,42 @@ export class SupabaseRepository {
         }
     }
 
-    async add<TEntity>(tableName: TableName, record: AddingEntity<TEntity> | AddingEntity<TEntity>[]): Promise<void> {
-        const { error } = await this.client
+    async add<TEntity>(tableName: TableName, record: AddingEntity<TEntity>): Promise<number> {
+        const { error, data } = await this.client
             .from(tableName)
-            .insert(record);
+            .insert(record)
+            .select('id');
 
         if (!!error) {
             console.error(`Error inserting new record to ${tableName}`, error);
+            return -1;
         }
+
+        if (!data) {
+            console.error(`Error inserting new record to ${tableName}, null data returned`);
+            return -1;
+        }
+        
+        return data[0]?.id ?? 0;
+    }
+
+    async addAll<TEntity>(tableName: TableName, record: AddingEntity<TEntity>[]): Promise<number[]> {
+        const { error, data } = await this.client
+            .from(tableName)
+            .insert(record)
+            .select('id');
+
+        if (!!error) {
+            console.error(`Error inserting new record to ${tableName}`, error);
+            return [];
+        }
+
+        if (!data) {
+            console.error(`Error inserting new record to ${tableName}, null data returned`);
+            return [];
+        }
+
+        return data.map(({ id }) => id);
     }
 
     getAll<TEntity>(tableName: TableName): Observable<QueryResult<TEntity>> {
