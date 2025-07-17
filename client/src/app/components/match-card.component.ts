@@ -64,6 +64,7 @@ interface MatchCardComponentViewModel {
                             <div
                                 [class]="[
                                     'scores__team1__' + i,
+                                    'score-number',
                                     score?.winner === 1 ? 'winner' : ''
                                 ]"
                             >
@@ -77,6 +78,7 @@ interface MatchCardComponentViewModel {
                             <div
                                 [class]="[
                                     'scores__team1__' + i,
+                                    'score-number',
                                     score?.winner === 2 ? 'winner' : ''
                                 ]"
                             >
@@ -132,16 +134,24 @@ interface MatchCardComponentViewModel {
                 &__scores {
                     display: flex;
                     flex-direction: column;
-                    width: 35%;
+                    width: 40%;
 
                     div[class^='scores__team'] {
                         display: flex;
-                        justify-content: space-around;
+                        justify-content: space-evenly;
                         align-items: center;
 
                         & > * {
-                            padding: 0.25rem 0.5rem;
+                            padding: 0.5rem 0;
                             white-space: pre;
+                            text-align: center;
+                        }
+
+                        span {
+                            width: 2rem;
+                            max-width: 2rem;
+                            min-width: 2rem;
+                            text-align: center;
                         }
                     }
                 }

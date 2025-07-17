@@ -88,6 +88,11 @@ import { NzTableModule } from 'ng-zorro-antd/table';
             }
 
             .header {
+                position: sticky;
+                top: 0;
+                z-index: 999; // NzModal backdrop is z-index 1000, so just below that.
+                background-color: var(--sr-background-default);
+
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -112,6 +117,7 @@ export class App {
         const ref = this.modal.create({
             nzTitle: 'Información de formato',
             nzContent: InformationContentComponent,
+            nzCentered: true,
             nzFooter: [
                 {
                     label: 'Cerrar',
@@ -279,9 +285,12 @@ export class App {
                 &__line {
                     display: flex;
                     justify-content: space-between;
+                    align-items: center;
 
                     &-explanation {
                         font-style: italic;
+                        font-size: 0.6rem;
+                        
                     }
                 }
 

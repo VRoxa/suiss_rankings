@@ -35,5 +35,6 @@ export class RoundsNavigatorComponent {
     rounds$ = this.repository.getAll<Round>('round').pipe(
         map(({ data }) => data),
         filter(x => !!x),
+        // map(() => Array.from({length: 6}).map((_,i) => ({id: i, name: `R${i+1}`})))
     );
 }

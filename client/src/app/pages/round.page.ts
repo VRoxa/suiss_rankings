@@ -85,19 +85,25 @@ const orderMatches = <T extends Match>(matches: T[]) => {
                 </div>
             }
 
-            <sr-matches-list
-                [vm]="vm"
-                (onMatchClicked)="openUpdateMatch($event)"
-            ></sr-matches-list>
+            <div class="list">
+                <sr-matches-list
+                    [vm]="vm"
+                    (onMatchClicked)="openUpdateMatch($event)"
+                ></sr-matches-list>
+            </div>
         }
     `,
     styles: [
         `
             .next-round {
                 display: flex;
-                flex-direction: row-reverse;
-                justify-content: space-between;
+                flex-direction: column;
                 margin: 0.5rem;
+                gap: 0.5rem;
+            }
+
+            .list {
+                padding: 0.5rem 0;
             }
         `,
     ],
