@@ -1,15 +1,15 @@
-import { CommonModule } from "@angular/common";
-import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
-import { NzButtonModule } from "ng-zorro-antd/button";
-import { NzIconModule } from "ng-zorro-antd/icon";
-import { NzPopconfirmModule } from "ng-zorro-antd/popconfirm";
-import { BehaviorSubject } from "rxjs";
-import { mergeToObject } from "../../utils/rx-utils";
-import { NzFlexModule } from "ng-zorro-antd/flex";
-import { ExternalComponent } from "../../pages/abstractions/external";
-import { resetDatabase } from "../../domain/services/reset-database.service";
-import { NzNotificationService } from "ng-zorro-antd/notification";
-import { NzModalRef } from "ng-zorro-antd/modal";
+import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
+import { BehaviorSubject } from 'rxjs';
+import { mergeToObject } from '../../utils/rx-utils';
+import { NzFlexModule } from 'ng-zorro-antd/flex';
+import { ExternalComponent } from '../../pages/abstractions/external';
+import { resetDatabase } from '../../domain/services/reset-database.service';
+import { NzNotificationService } from 'ng-zorro-antd/notification';
+import { NzModalRef } from 'ng-zorro-antd/modal';
 
 interface SettingsViewModel {
     loading: boolean;
@@ -24,9 +24,7 @@ interface SettingsViewModel {
         NzIconModule,
         NzPopconfirmModule,
     ],
-    providers: [
-        NzNotificationService,
-    ],
+    providers: [NzNotificationService],
     template: `
         @if (vm$ | async; as vm) {
             <div nz-flex [nzVertical]="true" nzAlign="center">
@@ -37,14 +35,13 @@ interface SettingsViewModel {
                     nzShape="round"
                     [nzLoading]="vm.loading"
                     nzSize="large"
-
                     nz-popconfirm
                     nzPopconfirmPlacement="bottom"
                     nzPopconfirmTitle="¿Borrar permanentemente todos los datos (parejas, rondas y cruces)?"
                     (nzOnConfirm)="wipeDatabase()"
-                    [nzOkButtonProps]="{nzDanger: true}"
+                    [nzOkButtonProps]="{ nzDanger: true }"
                 >
-                    <nz-icon nzType="warning" nzTheme="fill"/>
+                    <nz-icon nzType="warning" nzTheme="fill" />
                     {{ vm.loading ? 'Limpiando base de datos...' : 'Borrar datos' }}
                 </button>
             </div>
@@ -60,7 +57,7 @@ interface SettingsViewModel {
                     width: 100%;
                 }
             }
-        `
+        `,
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -71,7 +68,7 @@ export class SettingsComponent extends ExternalComponent {
     manualLoading$$ = new BehaviorSubject<boolean>(false);
 
     vm$ = mergeToObject<SettingsViewModel>({
-        loading: this.manualLoading$$
+        loading: this.manualLoading$$,
     });
 
     async wipeDatabase() {
@@ -79,21 +76,17 @@ export class SettingsComponent extends ExternalComponent {
         await this.toService(async () => {
             try {
                 await resetDatabase();
-                this.notification.success(
-                    'Datos borrados correctamente',
-                    '',
-                    { nzPlacement: 'bottom' }
-                );
-            }
-            catch (error) {
+                this.notification.success('Datos borrados correctamente', '', {
+                    nzPlacement: 'bottom',
+                });
+            } catch (error) {
                 console.error(error);
                 this.notification.error(
                     'Ha ocurrido un error',
                     'No se han borrado los datos, o han sido borrados parcialmente',
                     { nzPlacement: 'bottom' }
                 );
-            }
-            finally {
+            } finally {
                 this.manualLoading$$.next(false);
                 this.ref.close();
             }

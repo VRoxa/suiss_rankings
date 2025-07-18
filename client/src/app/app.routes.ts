@@ -1,6 +1,4 @@
 import { Routes } from '@angular/router';
-import { ParticipantsPage } from './pages/participants.page';
-import { RoundPage } from './pages/round.page';
 import { inject } from '@angular/core';
 import { SupabaseRepository } from './domain/repositories/supabase.service';
 
@@ -12,7 +10,7 @@ export const routes: Routes = [
     },
     {
         path: 'participants',
-        component: ParticipantsPage,
+        loadComponent: () => import('./pages/participants.page').then(m => m.ParticipantsPage),
     },
     {
         path: 'round',
@@ -30,7 +28,7 @@ export const routes: Routes = [
     },
     {
         path: 'round/:id',
-        component: RoundPage,
+        loadComponent: () => import('./pages/round.page').then(m => m.RoundPage),
     },
     {
         path: '**',

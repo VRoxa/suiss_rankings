@@ -1,4 +1,8 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import {
+    ApplicationConfig,
+    provideBrowserGlobalErrorListeners,
+    provideZoneChangeDetection,
+} from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { es_ES, provideNzI18n } from 'ng-zorro-antd/i18n';
@@ -10,12 +14,12 @@ import { provideHttpClient, withFetch } from '@angular/common/http';
 registerLocaleData(es);
 
 export const appConfig: ApplicationConfig = {
-  providers: [
-    provideBrowserGlobalErrorListeners(),
-    provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes, withComponentInputBinding()),
-    provideNzI18n(es_ES),
-    provideAnimationsAsync(),
-    provideHttpClient(withFetch()),
-  ]
+    providers: [
+        provideBrowserGlobalErrorListeners(),
+        provideZoneChangeDetection({ eventCoalescing: true }),
+        provideRouter(routes, withComponentInputBinding()),
+        provideNzI18n(es_ES),
+        provideAnimationsAsync(),
+        provideHttpClient(withFetch()),
+    ],
 };

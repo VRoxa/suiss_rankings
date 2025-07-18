@@ -2,7 +2,6 @@ import { inject } from '@angular/core';
 import { SupabaseRepository } from '../repositories/supabase.service';
 import { Match, MatchScore } from '../entities/match.entity';
 import { Participant } from '../entities/participant.entity';
-import { calculateScore, CountFor } from './score-calculator.service';
 import { Round } from '../entities/round.entity';
 import { AddingEntity } from '../repositories/types/supabase.types';
 

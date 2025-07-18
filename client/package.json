@@ -5,8 +5,10 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:netlify": "node ./src/environments/setEnvironment.js && ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
+
   },
   "prettier": {
     "overrides": [

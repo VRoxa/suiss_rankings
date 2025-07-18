@@ -1,6 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 import { createClient, SupabaseClient as Client } from "@supabase/supabase-js";
-import { environment } from "../../environments/environment";
+import { environment } from "../../../environments/environment";
 import { defer, from, map, Observable, shareReplay, startWith, switchMap } from "rxjs";
 import { AddingEntity, Entity, Query, QueryResult, TableName } from "./types/supabase.types";
 import { DisposableSupabaseService } from "./disposable-supabase.service";
