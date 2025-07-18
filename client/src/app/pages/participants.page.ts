@@ -65,7 +65,7 @@ const toDifference = (diff: number) => {
                         nzType="primary"
                         nzShape="round"
                         class="next-round__btn"
-                        [disabled]="!!(vm.data.length % 2) || !vm.canStart"
+                        [disabled]="vm.data.length === 0 || !!(vm.data.length % 2) || !vm.canStart"
                         
                         nz-popconfirm
                         nzPopconfirmTitle="¿Empezar torneo con ({{ vm.data.length }}) participantes?"
@@ -74,14 +74,14 @@ const toDifference = (diff: number) => {
                         (nzOnConfirm)="startTournament()"
                     >
                         Empezar torneo
-                        <nz-icon nzType="vertical-left"></nz-icon>
+                        <nz-icon nzType="vertical-left" />
                     </button>
                 }
 
                 <sr-participants-list
                     [vm]="vm"
                     (onParticipantClicked)="openUpdateParticipant($event)"
-                ></sr-participants-list>
+                />
 
                 @if (!vm.loading) {
                     <button nz-button
@@ -90,7 +90,7 @@ const toDifference = (diff: number) => {
                         [disabled]="vm.data.length >= 12"
                         (click)="openAddParticipant()"
                     >
-                        <nz-icon nzType="plus"></nz-icon>
+                        <nz-icon nzType="plus" />
                         Añadir pareja
                     </button>
                 }

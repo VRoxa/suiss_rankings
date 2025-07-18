@@ -15,7 +15,7 @@ import { NzTabsModule } from "ng-zorro-antd/tabs";
     ],
     template: `
         @if (rounds$ | async; as rounds) {
-            <nz-tabs nzType="card" nzLinkRouter>
+            <nz-tabs nzType="card" nzLinkRouter nzSize="small">
                 @for (round of rounds; track round.id) {
                     <nz-tab>
                         <a *nzTabLink nz-tab-link [routerLink]="['/round', round.id]">

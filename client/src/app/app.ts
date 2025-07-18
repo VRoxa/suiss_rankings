@@ -10,6 +10,7 @@ import { NzTableModule } from 'ng-zorro-antd/table';
 import { NzPopoverModule } from 'ng-zorro-antd/popover';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { AdminAccessButtonComponent } from './components/admin-access-button.component';
+import { SettingsComponent } from './components/dialogs/settings.component';
 
 @Component({
     selector: 'app-root',
@@ -132,11 +133,14 @@ export class App {
     }
 
     openSettingsModal() {
-        console.warn('Open settings panel [WIP]');
-    }
-
-    checkAdminAccess() {
-        this.router.navigate(['/access']);
+        const ref = this.modal.create({
+            nzTitle: 'Configuración',
+            nzContent: SettingsComponent,
+            nzFooter: [{
+                label: 'Cerrar',
+                onClick: () => ref.close(),
+            }]
+        });
     }
 }
 
@@ -301,7 +305,7 @@ export class App {
         `,
     ],
 })
-class InformationContentComponent {
+export class InformationContentComponent {
     pointsCriteria = [
         {
             id: 'win-match',

@@ -66,6 +66,7 @@ export interface UpdateParticipantResult {
                         nzPopconfirmTitle="¿Eliminar a {{ participant.name }}?"
                         nzPopconfirmPlacement="bottomLeft"
                         (nzOnConfirm)="close('delete')"
+                        [nzOkButtonProps]="{nzDanger: true}"
                     >
                         Eliminar
                     </button>
