@@ -42,7 +42,7 @@ import { MatchScore } from '../../domain/entities/match.entity';
                             <nz-row [nzGutter]="16">
                                 <nz-col [nzSpan]="8">
                                     <nz-form-label nzRequired nzFor="score-{{ i }}-1">
-                                        Partida {{ i + 1 }}:
+                                        Partida {{ i + 1 }}
                                     </nz-form-label>
                                 </nz-col>
                                 <nz-col [nzSpan]="8">

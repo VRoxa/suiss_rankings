@@ -86,11 +86,11 @@ const toDifference = (diff: number) => {
                     (onParticipantClicked)="vm.isAuthorized && openUpdateParticipant($event)"
                 />
 
-                @if (vm.isAuthorized && !vm.loading) {
+                @if (vm.isAuthorized && vm.canStart) {
                     <button nz-button
                         nzType="primary" nzShape="round"
                         class="flex-item"
-                        [disabled]="vm.data.length >= 12"
+                        [disabled]="vm.loading || vm.data.length >= 12"
                         (click)="openAddParticipant()"
                     >
                         <nz-icon nzType="plus" />

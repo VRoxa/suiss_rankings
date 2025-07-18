@@ -106,7 +106,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
     styles: [
         `
             .next-round__btn {
-                margin: 0 0.5rem;
+                margin: 0.5rem 0.5rem 0 0.5rem;
             }
 
             .list {
