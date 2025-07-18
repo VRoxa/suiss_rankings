@@ -3,7 +3,6 @@ import { ParticipantsPage } from './pages/participants.page';
 import { RoundPage } from './pages/round.page';
 import { inject } from '@angular/core';
 import { SupabaseRepository } from './domain/repositories/supabase.service';
-import { AdminAccessPage } from './pages/admin-access.page';
 
 export const routes: Routes = [
     {
@@ -32,10 +31,6 @@ export const routes: Routes = [
     {
         path: 'round/:id',
         component: RoundPage,
-    },
-    {
-        path: 'access',
-        component: AdminAccessPage,
     },
     {
         path: '**',

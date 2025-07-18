@@ -7,18 +7,24 @@ import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
 import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzTableModule } from 'ng-zorro-antd/table';
+import { NzPopoverModule } from 'ng-zorro-antd/popover';
+import { NzInputModule } from 'ng-zorro-antd/input';
+import { AdminAccessButtonComponent } from './components/admin-access-button.component';
 
 @Component({
     selector: 'app-root',
     imports: [
-        RouterOutlet,
-        RouterModule,
-        CommonModule,
-        NzMenuModule,
-        NzButtonModule,
-        NzIconModule,
-        NzModalModule,
-    ],
+    AdminAccessButtonComponent,
+    RouterOutlet,
+    RouterModule,
+    CommonModule,
+    NzMenuModule,
+    NzButtonModule,
+    NzIconModule,
+    NzModalModule,
+    NzPopoverModule,
+    NzInputModule,
+],
     template: `
         <div class="header">
             <ul nz-menu nzMode="horizontal">
@@ -49,14 +55,7 @@ import { NzTableModule } from 'ng-zorro-antd/table';
                     <nz-icon nzType="setting"></nz-icon>
                 </button>
 
-                <button
-                    nz-button
-                    nzSize="small"
-                    nzShape="circle"
-                    (click)="checkAdminAccess()"
-                >
-                    <nz-icon nzType="user-o"></nz-icon>
-                </button>
+                <sr-admin-access-button />
             </div>
         </div>
 
@@ -100,8 +99,8 @@ import { NzTableModule } from 'ng-zorro-antd/table';
                 &__buttons {
                     margin-right: 1rem;
 
-                    button {
-                        margin: 0 0.5rem;
+                    & > * {
+                        margin: 0 0.25rem;
                     }
                 }
             }

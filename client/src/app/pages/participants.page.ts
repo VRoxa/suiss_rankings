@@ -59,22 +59,24 @@ const toDifference = (diff: number) => {
         @if(vm$ | async; as vm) {
             <div nz-flex [nzVertical]="true" nzAlign="flex-end" class="container">
 
-                <!-- Disabled when the # of participants is odd. -->
-                <button nz-button
-                    nzType="primary"
-                    nzShape="round"
-                    class="next-round__btn"
-                    [disabled]="!!(vm.data.length % 2) || !vm.canStart"
-                    
-                    nz-popconfirm
-                    nzPopconfirmTitle="¿Empezar torneo con ({{ vm.data.length }}) participantes?"
-                    nzPopconfirmPlacement="bottomLeft"
-                    nzIcon="question-circle-o"
-                    (nzOnConfirm)="startTournament()"
-                >
-                    Empezar torneo
-                    <nz-icon nzType="vertical-left"></nz-icon>
-                </button>
+                @if (vm.canStart) {
+                    <!-- Disabled when the # of participants is odd. -->
+                    <button nz-button
+                        nzType="primary"
+                        nzShape="round"
+                        class="next-round__btn"
+                        [disabled]="!!(vm.data.length % 2) || !vm.canStart"
+                        
+                        nz-popconfirm
+                        nzPopconfirmTitle="¿Empezar torneo con ({{ vm.data.length }}) participantes?"
+                        nzPopconfirmPlacement="bottomLeft"
+                        nzIcon="question-circle-o"
+                        (nzOnConfirm)="startTournament()"
+                    >
+                        Empezar torneo
+                        <nz-icon nzType="vertical-left"></nz-icon>
+                    </button>
+                }
 
                 <sr-participants-list
                     [vm]="vm"
