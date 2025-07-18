@@ -39,6 +39,7 @@ import { updateParticipantsScore } from '../domain/services/update-participants-
 import { Round } from '../domain/entities/round.entity';
 import { NzFlexModule } from 'ng-zorro-antd/flex';
 import { NzNotificationService } from 'ng-zorro-antd/notification';
+import { AuthService } from '../auth/auth.service';
 
 const orderMatches = <T extends Match>(matches: T[]) => {
     return [...matches].sort(({ order: a }, { order: b }) => a - b);
@@ -63,7 +64,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
         @if (vm$ | async; as vm) {
             <sr-rounds-nav />
 
-            @if (vm.isCurrentRound) {
+            @if (vm.isAuthorized && vm.isCurrentRound) {
                 <div nz-flex nzJustify="flex-end">
                     @if (!vm.fullRankingUpdated) {
                         <button
@@ -97,7 +98,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
             <div class="list">
                 <sr-matches-list
                     [vm]="vm"
-                    (onMatchClicked)="openUpdateMatch($event)"
+                    (onMatchClicked)="vm.isAuthorized && openUpdateMatch($event)"
                 />
             </div>
         }
@@ -117,6 +118,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
 })
 export class RoundPage extends ExternalComponent {
 
+    private readonly auth = inject(AuthService);
     private readonly repository = inject(SupabaseRepository);
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
@@ -169,6 +171,7 @@ export class RoundPage extends ExternalComponent {
     );
 
     vm$ = mergeToObject<RoundPageViewModel>({
+        isAuthorized: this.auth.isAuthorized$,
         loading: merge(loadingFromQuery(this.source$), this.manualLoading$$),
         matches: this.mappedMatches$,
         isCurrentRound: combineLatest([

@@ -11,6 +11,12 @@ import { NzPopoverModule } from 'ng-zorro-antd/popover';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { AdminAccessButtonComponent } from './components/admin-access-button.component';
 import { SettingsComponent } from './components/dialogs/settings.component';
+import { AuthService } from './auth/auth.service';
+import { mergeToObject } from './utils/rx-utils';
+
+interface AppViewModel {
+    isAuthorized: boolean;
+}
 
 @Component({
     selector: 'app-root',
@@ -27,38 +33,42 @@ import { SettingsComponent } from './components/dialogs/settings.component';
     NzInputModule,
 ],
     template: `
-        <div class="header">
-            <ul nz-menu nzMode="horizontal">
-                <li nz-menu-item>
-                    <a routerLink="/participants">Clasificación</a>
-                </li>
-                <li nz-menu-item>
-                    <a routerLink="/round">Rondas</a>
-                </li>
-            </ul>
-
-            <div class="header__buttons">
-                <button
-                    nz-button
-                    nzSize="small"
-                    nzShape="circle"
-                    (click)="openInfoModal()"
-                >
-                    <nz-icon nzType="question-o"></nz-icon>
-                </button>
-
-                <button
-                    nz-button
-                    nzSize="small"
-                    nzShape="circle"
-                    (click)="openSettingsModal()"
-                >
-                    <nz-icon nzType="setting"></nz-icon>
-                </button>
-
-                <sr-admin-access-button />
+        @if (vm$ | async; as vm) {
+            <div class="header">
+                <ul nz-menu nzMode="horizontal">
+                    <li nz-menu-item>
+                        <a routerLink="/participants">Clasificación</a>
+                    </li>
+                    <li nz-menu-item>
+                        <a routerLink="/round">Rondas</a>
+                    </li>
+                </ul>
+    
+                <div class="header__buttons">
+                    <button
+                        nz-button
+                        nzSize="small"
+                        nzShape="circle"
+                        (click)="openInfoModal()"
+                    >
+                        <nz-icon nzType="question-o"></nz-icon>
+                    </button>
+    
+                    @if (vm.isAuthorized) {
+                        <button
+                            nz-button
+                            nzSize="small"
+                            nzShape="circle"
+                            (click)="openSettingsModal()"
+                        >
+                            <nz-icon nzType="setting"></nz-icon>
+                        </button>
+                    }
+    
+                    <sr-admin-access-button />
+                </div>
             </div>
-        </div>
+        }
 
         <router-outlet></router-outlet>
     `,
@@ -110,8 +120,13 @@ import { SettingsComponent } from './components/dialogs/settings.component';
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
-    readonly modal = inject(NzModalService);
-    readonly router = inject(Router);
+    private readonly auth = inject(AuthService);
+    private readonly modal = inject(NzModalService);
+    private readonly router = inject(Router);
+
+    vm$ = mergeToObject<AppViewModel>({
+        isAuthorized: this.auth.isAuthorized$,
+    });
 
     openInfoModal() {
         const ref = this.modal.create({

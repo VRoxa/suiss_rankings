@@ -20,6 +20,7 @@ import { addParticipant } from "../domain/services/add-participant.service";
 import { Round } from "../domain/entities/round.entity";
 import { startingRound } from "../domain/services/next-round.service";
 import { Router, RouterModule } from "@angular/router";
+import { AuthService } from "../auth/auth.service";
 
 // TODO - What happens when a participant is eliminated during a knockout round,
 // Then in future rounds, another participant has less score (bc score can substract).
@@ -61,7 +62,7 @@ const toDifference = (diff: number) => {
         @if(vm$ | async; as vm) {
             <div nz-flex [nzVertical]="true" nzAlign="flex-end" class="container">
 
-                @if (vm.canStart) {
+                @if (vm.isAuthorized && vm.canStart) {
                     <!-- Disabled when the # of participants is odd. -->
                     <button nz-button
                         nzType="primary"
@@ -82,10 +83,10 @@ const toDifference = (diff: number) => {
 
                 <sr-participants-list
                     [vm]="vm"
-                    (onParticipantClicked)="openUpdateParticipant($event)"
+                    (onParticipantClicked)="vm.isAuthorized && openUpdateParticipant($event)"
                 />
 
-                @if (!vm.loading) {
+                @if (vm.isAuthorized && !vm.loading) {
                     <button nz-button
                         nzType="primary" nzShape="round"
                         class="flex-item"
@@ -123,6 +124,7 @@ const toDifference = (diff: number) => {
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ParticipantsPage extends ExternalComponent {
+    private readonly auth = inject(AuthService);
     private readonly repository = inject(SupabaseRepository);
     private readonly modal = inject(NzModalService);
     private readonly router = inject(Router);
@@ -132,6 +134,7 @@ export class ParticipantsPage extends ExternalComponent {
     rounds$ = this.repository.getAll<Round>('round');
     
     vm$ = mergeToObject<ParticipantsPageViewModel>({
+        isAuthorized: this.auth.isAuthorized$,
         loading: merge(
             loadingFromQuery(this.participants$),
             this.manualLoading$$,

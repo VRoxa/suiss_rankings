@@ -5,6 +5,7 @@ export type ParticipantViewModel = Participant & {
 };
 
 export type ParticipantsPageViewModel = {
+    isAuthorized: boolean;
     loading: boolean;
     data: ParticipantViewModel[];
     canStart: boolean;
