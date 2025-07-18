@@ -1,5 +1,4 @@
 import {
-    APP_INITIALIZER,
     ApplicationConfig,
     inject,
     provideAppInitializer,
@@ -12,9 +11,16 @@ import { es_ES, provideNzI18n } from 'ng-zorro-antd/i18n';
 import { registerLocaleData } from '@angular/common';
 import es from '@angular/common/locales/es';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { HttpClient, provideHttpClient, withFetch } from '@angular/common/http';
+import {
+    HttpClient,
+    provideHttpClient,
+    withFetch,
+    withInterceptors,
+} from '@angular/common/http';
 import { SupabaseClientProvider } from './domain/repositories/supabase.service';
 import { firstValueFrom, tap } from 'rxjs';
+import { tokenInterceptor } from './auth/token.interceptor';
+import { AuthService } from './auth/auth.service';
 
 registerLocaleData(es);
 
@@ -22,17 +28,24 @@ const initializeSupabaseClient = async () => {
     const http = inject(HttpClient);
     const clientProvider = inject(SupabaseClientProvider);
 
-    const req$ = http.get<{
-        supabaseKey: string,
-        supabaseUrl: string
-    }>('/.netlify/functions/provide-credentials').pipe(
-        tap(credentials => {
-            const { supabaseKey, supabaseUrl } = credentials;
-            clientProvider.initialize(supabaseUrl, supabaseKey);
-        }),
-    );
+    const req$ = http
+        .get<{
+            supabaseKey: string;
+            supabaseUrl: string;
+        }>('/.netlify/functions/provide-credentials')
+        .pipe(
+            tap((credentials) => {
+                const { supabaseKey, supabaseUrl } = credentials;
+                clientProvider.initialize(supabaseUrl, supabaseKey);
+            })
+        );
 
     await firstValueFrom(req$);
+};
+
+const initializeAuthorization = async () => {
+    const auth = inject(AuthService);
+    await auth.checkInitialAuthorization();
 }
 
 export const appConfig: ApplicationConfig = {
@@ -42,8 +55,9 @@ export const appConfig: ApplicationConfig = {
         provideRouter(routes, withComponentInputBinding()),
         provideNzI18n(es_ES),
         provideAnimationsAsync(),
-        provideHttpClient(withFetch()),
+        provideHttpClient(withFetch(), withInterceptors([tokenInterceptor])),
         SupabaseClientProvider,
         provideAppInitializer(initializeSupabaseClient),
+        provideAppInitializer(initializeAuthorization),
     ],
 };

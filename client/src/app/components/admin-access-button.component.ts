@@ -52,8 +52,9 @@ interface AdminAccessButtonViewModel {
                 @if (vm.isAuthorized) {
                     <button
                         nz-button
-                        (click)="logout()"
+                        nzType="primary"
                         nzDanger
+                        (click)="logout()"
                     >
                         Salir de modo administrador
                         <nz-icon nzType="user-delete"/>
