@@ -1,6 +1,5 @@
 import { Injectable, inject } from "@angular/core";
 import { createClient, SupabaseClient as Client } from "@supabase/supabase-js";
-import { environment } from "../../../environments/environment";
 import { defer, from, map, Observable, shareReplay, startWith, switchMap } from "rxjs";
 import { AddingEntity, Entity, Query, QueryResult, TableName } from "./types/supabase.types";
 import { DisposableSupabaseService } from "./disposable-supabase.service";
@@ -9,17 +8,20 @@ import { DisposableSupabaseService } from "./disposable-supabase.service";
     providedIn: 'root'
 })
 export class SupabaseClientProvider {
-    private readonly _client: Client;
+    private _client!: Client;
 
-    constructor() {
-        this._client = createClient(
-            environment.supabaseUrl,
-            environment.supabaseKey
-        );
+    get client() {
+        return this._client;
     }
 
-    public get client() {
-        return this._client;
+    initialize(
+        supabaseUrl: string,
+        supabaseKey: string,
+    ) {
+        this._client = createClient(
+            supabaseUrl,
+            supabaseKey,
+        );
     }
 }
 
