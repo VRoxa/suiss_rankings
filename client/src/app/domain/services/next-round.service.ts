@@ -38,7 +38,7 @@ const shuffle = <T>(elements: T[]): T[] => {
     return elements;
 };
 
-export const startingRound = async (): Promise<void> => {
+export const startingRound = async (): Promise<number> => {
     const repository = inject(SupabaseRepository);
 
     /* SHUFFLE PARTICIPANTS RANDOMLY */
@@ -60,9 +60,11 @@ export const startingRound = async (): Promise<void> => {
         startingRoundId,
         pairedParticipants,
     );
+
+    return startingRoundId;
 };
 
-export const nextRound = async (): Promise<void> => {
+export const nextRound = async (): Promise<number> => {
     const repository = inject(SupabaseRepository);
 
     const participants = await repository.disposable.getAll<Participant>(
@@ -92,6 +94,8 @@ export const nextRound = async (): Promise<void> => {
     const orderedParticipants = sortByScore(activeParticipants);
     const pairedParticipants = pair(orderedParticipants);
     await addMatchesForRound(repository, nextRoundId, pairedParticipants);
+
+    return nextRoundId;
 };
 
 const addMatchesForRound = async (

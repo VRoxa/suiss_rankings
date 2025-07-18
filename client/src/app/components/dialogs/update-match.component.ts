@@ -78,7 +78,7 @@ import { MatchScore } from '../../domain/entities/match.entity';
                         <nz-col [nzSpan]="24">
                             <label nz-checkbox
                                 [ngModel]="!match.inProgress"
-                                (ngModelChange)="match.inProgress = !$event"
+                                (ngModelChange)="match.inProgress = !$event; checkMatchValidity()"
                                 [ngModelOptions]="{ standalone: true }"
                             >
                                 Cruce terminado
@@ -176,7 +176,7 @@ export class UpdateMatchComponent {
         this.checkMatchValidity();
     }
 
-    private checkTieBreaker() {
+    checkTieBreaker() {
         const game1Winner = this.match.score[0].winner;
         const game2Winner = this.match.score[1].winner;
 
@@ -192,7 +192,7 @@ export class UpdateMatchComponent {
         }
     }
 
-    private checkMatchValidity() {
+    checkMatchValidity() {
         const isValid = (score: MatchScore | null): boolean => {
             if (!score) {
                 // Null score is OK
@@ -200,6 +200,10 @@ export class UpdateMatchComponent {
             }
 
             const { score1, score2 } = score;
+            if (this.match.inProgress && score1 === 0 && score2 === 0) {
+                return true;                
+            }
+
             if (score1 === 10 && score2 === 10) {
                 return false;
             }
@@ -208,8 +212,8 @@ export class UpdateMatchComponent {
                 return false;
             }
 
-            if (score.winner !== 0) {
-                return true;
+            if (!this.match.inProgress && score.winner === 0) {
+                return false;
             }
 
             return true;

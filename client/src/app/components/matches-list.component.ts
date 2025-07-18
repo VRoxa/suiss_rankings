@@ -15,7 +15,7 @@ import { NzProgressModule } from "ng-zorro-antd/progress";
     ],
     template: `
         <div class="progress">
-            <nz-progress [nzPercent]="progress()" [nzShowInfo]="true"></nz-progress>
+            <nz-progress [nzPercent]="progress()" [nzShowInfo]="true" />
         </div>
 
         <nz-list nzSize="large" [nzLoading]="vm().loading">
@@ -23,11 +23,11 @@ import { NzProgressModule } from "ng-zorro-antd/progress";
                 <sr-match-card
                     [match]="match"
                     (click)="onMatchClicked.emit(match)"
-                ></sr-match-card>
+                />
             }
 
             @if (!vm().matches.length) {
-                <nz-list-empty></nz-list-empty>
+                <nz-list-empty />
             }
         </nz-list>
     `,

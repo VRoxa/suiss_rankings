@@ -11,4 +11,5 @@ export type RoundPageViewModel = {
     isCurrentRound: boolean;
     matches: MatchViewModel[];
     isRoundFinished: boolean;
+    fullRankingUpdated: boolean;
 }

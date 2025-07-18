@@ -6,5 +6,5 @@ export interface Participant {
     eliminated: boolean;
 
     // Foreign key to round::id
-    lastRoundScored: number;
+    lastRoundScored: number | null;
 }

@@ -15,7 +15,7 @@ import {
     Subject,
     switchMap,
 } from 'rxjs';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Participant } from '../domain/entities/participant.entity';
 import {
     loadingFromQuery,
@@ -37,6 +37,8 @@ import { updateMatch } from '../domain/services/update-match.service';
 import { nextRound } from '../domain/services/next-round.service';
 import { updateParticipantsScore } from '../domain/services/update-participants-score.service';
 import { Round } from '../domain/entities/round.entity';
+import { NzFlexModule } from 'ng-zorro-antd/flex';
+import { NzNotificationService } from 'ng-zorro-antd/notification';
 
 const orderMatches = <T extends Match>(matches: T[]) => {
     return [...matches].sort(({ order: a }, { order: b }) => a - b);
@@ -48,40 +50,47 @@ const orderMatches = <T extends Match>(matches: T[]) => {
         MatchesListComponent,
         RoundsNavigatorComponent,
         CommonModule,
+        RouterModule,
         NzButtonModule,
         NzIconModule,
         NzModalModule,
+        NzFlexModule,
+    ],
+    providers: [
+        NzNotificationService
     ],
     template: `
         @if (vm$ | async; as vm) {
-            <sr-rounds-nav></sr-rounds-nav>
+            <sr-rounds-nav />
 
             @if (vm.isCurrentRound) {
-                <div class="next-round">
-    
-                    <button
-                        nz-button
-                        nzType="primary"
-                        nzShape="round"
-                        class="next-round__btn"
-                        [disabled]="!vm.isRoundFinished"
-                        (click)="updateScores(vm.matches)"
-                    >
-                        Actualizar puntuación
-                        <nz-icon nzType="reload-o"></nz-icon>
-                    </button>
-    
-                    <button
-                        nz-button
-                        nzType="primary"
-                        nzShape="round"
-                        class="next-round__btn"
-                        [disabled]="!vm.isRoundFinished"
-                        (click)="nextRound()"
-                    >
-                        Lanzar siguiente ronda
-                        <nz-icon nzType="vertical-left"></nz-icon>
-                    </button>
+                <div nz-flex nzJustify="flex-end">
+                    @if (!vm.fullRankingUpdated) {
+                        <button
+                            nz-button
+                            nzType="primary"
+                            nzShape="round"
+                            class="next-round__btn"
+                            [disabled]="!vm.isRoundFinished"
+                            (click)="updateScores(vm.matches)"
+                        >
+                            Actualizar puntuación
+                            <nz-icon nzType="reload-o"></nz-icon>
+                        </button>
+                    }
+                    @else {
+                        <button
+                            nz-button
+                            nzType="primary"
+                            nzShape="round"
+                            class="next-round__btn"
+                            [disabled]="!vm.isRoundFinished"
+                            (click)="nextRound()"
+                        >
+                            Lanzar siguiente ronda
+                            <nz-icon nzType="vertical-left"></nz-icon>
+                        </button>
+                    }
                 </div>
             }
 
@@ -89,17 +98,14 @@ const orderMatches = <T extends Match>(matches: T[]) => {
                 <sr-matches-list
                     [vm]="vm"
                     (onMatchClicked)="openUpdateMatch($event)"
-                ></sr-matches-list>
+                />
             </div>
         }
     `,
     styles: [
         `
-            .next-round {
-                display: flex;
-                flex-direction: column;
-                margin: 0.5rem;
-                gap: 0.5rem;
+            .next-round__btn {
+                margin: 0 0.5rem;
             }
 
             .list {
@@ -113,22 +119,25 @@ export class RoundPage extends ExternalComponent {
 
     private readonly repository = inject(SupabaseRepository);
     private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
     private readonly modal = inject(NzModalService);
+    private readonly notification = inject(NzNotificationService);
 
     private readonly manualLoading$$ = new Subject<boolean>();
 
-    id$ = this.route.paramMap.pipe(
+    roundId$ = this.route.paramMap.pipe(
         map((params) => params.get('id')),
-        filter((id) => !!id)
+        filter((id): id is string => !!id),
+        map((id) => +id),
     );
 
-    matches$ = this.id$.pipe(
+    matches$ = this.roundId$.pipe(
         switchMap((id) =>
             this.repository.getAll<Match>('match').pipe(
                 map((query) => ({
                     ...query,
                     data:
-                        query.data?.filter((match) => match.round === +id!) ??
+                        query.data?.filter((match) => match.round === id) ??
                         null,
                 })),
             )
@@ -163,12 +172,12 @@ export class RoundPage extends ExternalComponent {
         loading: merge(loadingFromQuery(this.source$), this.manualLoading$$),
         matches: this.mappedMatches$,
         isCurrentRound: combineLatest([
-            this.id$,
+            this.roundId$,
             from(this.repository.disposable.getAll<Round>('round'))
         ]).pipe(
             map(([id, rounds]) => {
                 const lastRound = Math.max(...rounds.map((x) => x.id));
-                return +(id ?? '0') === lastRound;
+                return id === lastRound;
             }),
             startWith(false),
         ),
@@ -179,6 +188,14 @@ export class RoundPage extends ExternalComponent {
                 () => of(false),
             ),
             startWith(false),
+        ),
+        fullRankingUpdated: this.roundId$.pipe(
+            switchMap((id) =>
+                this.mappedMatches$.pipe(
+                    map((matches) => matches.flatMap(({ team1, team2 }) => [team1, team2])),
+                    map((participants) => participants.every(({lastRoundScored}) => lastRoundScored === id)),
+                ),
+            ),
         ),
     });
 
@@ -208,12 +225,11 @@ export class RoundPage extends ExternalComponent {
 
         this.manualLoading$$.next(true);
         this.toService(async () => {
-            try {
-                await updateMatch(result);
-            }
-            finally {
-                this.manualLoading$$.next(false);
-            }
+            await updateMatch(result);
+            this.notification.success(
+                'Cruce actualizado', '',
+                { nzPlacement: 'bottom' }
+            );
         });
     }
 
@@ -226,26 +242,24 @@ export class RoundPage extends ExternalComponent {
 
         this.manualLoading$$.next(true);
         this.toService(async () => {
-            try {
-                await updateParticipantsScore(rawMatches);
-            }
-            finally {
-                this.manualLoading$$.next(false);
-            }
+            await updateParticipantsScore(rawMatches);
+            this.notification.success(
+                'Clasificación actualizada', '',
+                { nzPlacement: 'bottom' }
+            );
         });
     }
 
     public async nextRound() {
         this.manualLoading$$.next(true);
         this.toService(async () => {
-            try {
-                await nextRound();
+            const nextRoundId = await nextRound();
+            this.notification.success(
+                'Siguiente ronda creada', '',
+                { nzPlacement: 'bottom' }
+            );
 
-                // TODO - Navigate to next round URL
-            }
-            finally {
-                this.manualLoading$$.next(false);
-            }
+            this.router.navigate(['/round', nextRoundId]);
         });
     }
 }

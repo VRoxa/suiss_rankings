@@ -2,39 +2,48 @@ import { inject } from '@angular/core';
 import { Match } from '../entities/match.entity';
 import { SupabaseRepository } from '../repositories/supabase.service';
 import { Participant } from '../entities/participant.entity';
-import { calculateScore, CountFor } from './score-calculator.service';
 
 export const updateParticipantsScore = async (
     currentRoundMatches: Match[]
 ): Promise<void> => {
     const repository = inject(SupabaseRepository);
 
+    const resultsOfCurrentRound = currentRoundMatches.flatMap((match) => [
+        {
+            team: match.team1,
+            difference: match.totalScore1,
+        },
+        {
+            team: match.team2,
+            difference: match.totalScore2,
+        },
+    ]);
+
+    const { round: currentRoundId } = currentRoundMatches[0];
+
     /* UPDATE PARTICIPANTS' SCORE BASED ON CURRENT ROUND RESULTS */
     const participants = await repository.disposable.getAll<Participant>(
         'participant'
     );
 
-    const resultsOfCurrentRound = currentRoundMatches.flatMap((match) => [
-        {
-            team: match.team1,
-            difference: calculateScore(match.score, CountFor.One),
-        },
-        {
-            team: match.team2,
-            difference: calculateScore(match.score, CountFor.Two),
-        },
-    ]);
+    const outdatedParticipants = participants
+        .filter(({ eliminated }) => !eliminated)
+        .filter(({ lastRoundScored }) => lastRoundScored !== currentRoundId);
 
-    for (const participant of participants) {
+    for (const participant of outdatedParticipants) {
         const { difference } = resultsOfCurrentRound.find(
             ({ team }) => team === participant.id
         )!;
         participant.score += difference;
+        participant.lastRoundScored = currentRoundId;
     }
 
     await Promise.all(
-        participants.map((p) => repository.update('participant', p))
+        outdatedParticipants.map((p) => repository.update('participant', p))
     );
 
-    console.log(`[UPDATE SCORES] Participants' score updated`, participants);
+    console.debug(
+        `[UPDATE SCORES] Participants' score updated`,
+        outdatedParticipants
+    );
 };

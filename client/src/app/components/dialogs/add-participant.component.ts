@@ -41,7 +41,7 @@ export class AddParticipantComponent {
         name: '',
         score: 0,
         eliminated: false,
-        lastRoundScored: 0,
+        lastRoundScored: null,
     };
 
     constructor() {

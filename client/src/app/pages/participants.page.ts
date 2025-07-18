@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { SupabaseRepository } from "../domain/repositories/supabase.service";
 import { Participant } from "../domain/entities/participant.entity";
-import { filter, firstValueFrom, map, merge, of, startWith, Subject } from "rxjs";
-import { loadingFromQuery, mergeToObject, sswitch } from "../utils/rx-utils";
+import { filter, firstValueFrom, map, merge, startWith, Subject } from "rxjs";
+import { loadingFromQuery, mergeToObject } from "../utils/rx-utils";
 import { CommonModule } from "@angular/common";
 import { NzIconModule } from "ng-zorro-antd/icon";
 import { NzTypographyModule } from "ng-zorro-antd/typography";
@@ -19,6 +19,7 @@ import { AddParticipantComponent } from "../components/dialogs/add-participant.c
 import { addParticipant } from "../domain/services/add-participant.service";
 import { Round } from "../domain/entities/round.entity";
 import { startingRound } from "../domain/services/next-round.service";
+import { Router, RouterModule } from "@angular/router";
 
 // TODO - What happens when a participant is eliminated during a knockout round,
 // Then in future rounds, another participant has less score (bc score can substract).
@@ -47,13 +48,14 @@ const toDifference = (diff: number) => {
     selector: 'sr-participants',
     imports: [
         ParticipantsListComponent,
-        NzIconModule,
         CommonModule,
-        NzTypographyModule,
+        RouterModule,
+        NzModalModule,
         NzButtonModule,
+        NzIconModule,
         NzFlexModule,
         NzPopconfirmModule,
-        NzModalModule,
+        NzTypographyModule,
     ],
     template: `
         @if(vm$ | async; as vm) {
@@ -123,6 +125,7 @@ const toDifference = (diff: number) => {
 export class ParticipantsPage extends ExternalComponent {
     private readonly repository = inject(SupabaseRepository);
     private readonly modal = inject(NzModalService);
+    private readonly router = inject(Router);
     
     manualLoading$$ = new Subject<boolean>();
     participants$ = this.repository.getAll<Participant>('participant');
@@ -162,13 +165,8 @@ export class ParticipantsPage extends ExternalComponent {
     public async startTournament() {
         this.manualLoading$$.next(true);
         this.toService(async () => {
-            try {
-                await startingRound();
-                // TODO - navigate to first round
-            }
-            finally {
-                this.manualLoading$$.next(false);
-            }
+            const firstRoundId = await startingRound();
+            this.router.navigate(['/round', firstRoundId]);
         });
     }
 
@@ -190,12 +188,7 @@ export class ParticipantsPage extends ExternalComponent {
 
         this.manualLoading$$.next(true);
         this.toService(async () => {
-            try {
-                await addParticipant(result);
-            }
-            finally {
-                this.manualLoading$$.next(false);
-            }
+            await addParticipant(result);
         });
     }
 
@@ -224,13 +217,11 @@ export class ParticipantsPage extends ExternalComponent {
                     eliminated: !participant.eliminated, // Toggle elimination
                 };
             }
-            
-            try {
-                await updateParticipant(result);
-            }
-            finally {
-                this.manualLoading$$.next(false);
-            }
+
+            // TODO - Unify all service calls into an decorator that try/catches
+            // these calls and raises a pop message.
+            // Use ExternalComponent for that??
+            await updateParticipant(result);
         });
     }
 }

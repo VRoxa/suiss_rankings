@@ -1,7 +1,6 @@
 import {
     ChangeDetectionStrategy,
     Component,
-    computed,
     inject,
     Injector,
     input,
@@ -11,14 +10,9 @@ import { NzCardModule } from 'ng-zorro-antd/card';
 import { PadTextPipe } from '../pipes/pad-text.pipe';
 import { CommonModule } from '@angular/common';
 import { MatchViewModel } from './models/rounds.view-model';
-import {
-    calculateScore,
-    CountFor,
-} from '../domain/services/score-calculator.service';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { log, mergeToObject, takeElementAt } from '../utils/rx-utils';
-import { combineLatest, map } from 'rxjs';
-import { isPromise } from 'rxjs/internal/util/isPromise';
+import { mergeToObject } from '../utils/rx-utils';
+import { map } from 'rxjs';
 
 interface MatchCardComponentViewModel {
     match: MatchViewModel;
@@ -174,29 +168,18 @@ export class MatchCardComponent {
     readonly match = input.required<MatchViewModel>();
     match$ = toObservable(this.match, { injector: this.injector });
 
-    scores$ = this.match$.pipe(
-        map(({score}) => [
-            calculateScore(score, CountFor.One),
-            calculateScore(score, CountFor.Two),
-        ]),
-    );
-
     vm$ = mergeToObject<MatchCardComponentViewModel>({
         match: this.match$,
-        score1: this.scores$.pipe(takeElementAt(0)),
-        score2: this.scores$.pipe(takeElementAt(1)),
-        winner: combineLatest([
-            this.match$.pipe(map(({inProgress}) => inProgress)),
-            this.scores$,
-        ]).pipe(
-            map(([inProgress, [score1, score2]]) => {
-                if (inProgress) {
-                    return 0;
-                }
+        score1: this.match$.pipe(map(({totalScore1}) => totalScore1)),
+        score2: this.match$.pipe(map(({totalScore2}) => totalScore2)),
+        winner: this.match$.pipe(map(({score, inProgress}) => {
+            if (inProgress) {
+                return 0;
+            }
 
-                // TODO - review for best loser and worst winner.
-                return score1 > score2 ? 1 : 2;
-            }),
-        )
+            return score.filter((matchScore) => matchScore?.winner === 1).length === 2
+                ? 1
+                : 2;
+        })),
     });
 }
