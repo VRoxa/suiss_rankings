@@ -6,7 +6,6 @@ import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzPopoverModule } from 'ng-zorro-antd/popover';
 import { BehaviorSubject } from 'rxjs';
 import { mergeToObject } from '../utils/rx-utils';
-import { environment } from '../../environments/environment';
 import { NzNotificationService } from 'ng-zorro-antd/notification';
 import { NzFlexModule } from 'ng-zorro-antd/flex';
 

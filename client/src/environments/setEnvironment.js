@@ -6,6 +6,8 @@ const environment = {
     supabaseKey: process.env.NG_APP_Supabase_API_KEY || "",
 };
 
+console.info('Setting up environment file');
+
 const targetPath = path.resolve(__dirname, "./environment.ts");
 const fileContent = `
 export const environment = ${JSON.stringify(environment, null, 2)};
