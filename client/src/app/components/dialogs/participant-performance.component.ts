@@ -62,6 +62,7 @@ export class ParticipantPerformanceComponent {
             .from('match')
             .select('*, round (name), team1:participant!team1 (name, id), team2:participant!team2 (name, id)')
             .or(`team1.eq.${this.participant.id},team2.eq.${this.participant.id}`)
+            .order('round')
     ).pipe(
         map(({ data }) => data as MatchViewModel[]),
         map(matches => matches.filter(({ inProgress}) => !inProgress)),

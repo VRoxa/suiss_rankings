@@ -4,6 +4,7 @@ import { Match } from '../domain/entities/match.entity';
 import { CommonModule } from '@angular/common';
 import {
     combineLatest,
+    delay,
     filter,
     firstValueFrom,
     from,
@@ -31,6 +32,7 @@ import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { RoundsNavigatorComponent } from '../components/rounds-nav.component';
 import { NzModalModule, NzModalService } from 'ng-zorro-antd/modal';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { UpdateMatchComponent } from '../components/dialogs/update-match.component';
 import { ExternalComponent } from './abstractions/external';
 import { updateMatch } from '../domain/services/update-match.service';
@@ -55,6 +57,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
         NzButtonModule,
         NzIconModule,
         NzModalModule,
+        NzAlertModule,
         NzFlexModule,
     ],
     providers: [
@@ -63,6 +66,17 @@ const orderMatches = <T extends Match>(matches: T[]) => {
     template: `
         @if (vm$ | async; as vm) {
             <sr-rounds-nav />
+
+            @if (vm.isKnockoutRound) {
+                <div class="knockout-disclaimer">
+                    <nz-alert
+                        nzType="error"
+                        nzMessage="Knockout"
+                        nzDescription="Las cuatro últimas parejas en la clasificación, después de esta ronda, serán eliminadas"
+                        nzCloseable
+                    />
+                </div>
+            }
 
             @if (vm.isAuthorized && vm.isCurrentRound) {
                 <div nz-flex nzJustify="flex-end">
@@ -112,6 +126,10 @@ const orderMatches = <T extends Match>(matches: T[]) => {
             .list {
                 padding: 0.5rem 0;
             }
+
+            .knockout-disclaimer {
+                margin: 0 1rem;
+            }
         `,
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -126,11 +144,16 @@ export class RoundPage extends ExternalComponent {
     private readonly notification = inject(NzNotificationService);
 
     private readonly manualLoading$$ = new Subject<boolean>();
+    private readonly forceRefresh$$ = new Subject<void>();
 
-    roundId$ = this.route.paramMap.pipe(
-        map((params) => params.get('id')),
-        filter((id): id is string => !!id),
-        map((id) => +id),
+    roundId$ = this.forceRefresh$$.pipe(
+        delay(1000),
+        startWith(void 0),
+        switchMap(() => this.route.paramMap.pipe(
+            map((params) => params.get('id')),
+            filter((id): id is string => !!id),
+            map((id) => +id),
+        )),
     );
 
     matches$ = this.roundId$.pipe(
@@ -170,19 +193,21 @@ export class RoundPage extends ExternalComponent {
         startWith([]),
     );
 
+    allRounds$ = this.repository.disposable.getAll<Round>('round');
+
     vm$ = mergeToObject<RoundPageViewModel>({
         isAuthorized: this.auth.isAuthorized$,
         loading: merge(loadingFromQuery(this.source$), this.manualLoading$$),
         matches: this.mappedMatches$,
         isCurrentRound: combineLatest([
             this.roundId$,
-            from(this.repository.disposable.getAll<Round>('round'))
+            this.allRounds$,
         ]).pipe(
             map(([id, rounds]) => {
                 const lastRound = Math.max(...rounds.map((x) => x.id));
                 return id === lastRound;
             }),
-            startWith(false),
+            // startWith(false),
         ),
         isRoundFinished: this.mappedMatches$.pipe(
             sswitch(
@@ -199,6 +224,15 @@ export class RoundPage extends ExternalComponent {
                     map((participants) => participants.every(({lastRoundScored}) => lastRoundScored === id)),
                 ),
             ),
+        ),
+        isKnockoutRound: combineLatest([
+            this.roundId$,
+            this.allRounds$,
+        ]).pipe(
+            map(([id, rounds]) => {
+                const currentRoundIndex = rounds.findIndex((x) => x.id === id);
+                return currentRoundIndex === 3; // Fourth round
+            }),
         ),
     });
 
@@ -263,6 +297,7 @@ export class RoundPage extends ExternalComponent {
             );
 
             this.router.navigate(['/round', nextRoundId]);
+            this.forceRefresh$$.next();
         });
     }
 }

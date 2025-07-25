@@ -13,4 +13,5 @@ export type RoundPageViewModel = {
     matches: MatchViewModel[];
     isRoundFinished: boolean;
     fullRankingUpdated: boolean;
+    isKnockoutRound: boolean;
 }
