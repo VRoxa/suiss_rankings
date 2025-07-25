@@ -3,15 +3,15 @@ import { NZ_MODAL_DATA, NzModalRef } from "ng-zorro-antd/modal";
 import { CommonModule } from "@angular/common";
 import { NzInputModule } from "ng-zorro-antd/input";
 import { FormsModule } from "@angular/forms";
-import { ParticipantViewModel } from "../models/participants.view-model";
 import { NzButtonModule } from "ng-zorro-antd/button";
 import { NzPopconfirmModule } from "ng-zorro-antd/popconfirm";
+import { Participant } from "../../domain/entities/participant.entity";
 
 type UpdateParticipantAction = 'update' | 'delete' | 'none';
 
 export interface UpdateParticipantResult {
     action: UpdateParticipantAction;
-    participant: ParticipantViewModel;
+    participant: Participant;
 }
 
 @Component({
@@ -99,7 +99,7 @@ export interface UpdateParticipantResult {
 })
 export class UpdateParticipantComponent implements AfterViewInit {
 
-    readonly participant = inject<ParticipantViewModel>(NZ_MODAL_DATA);
+    readonly participant = inject<Participant>(NZ_MODAL_DATA);
     readonly ref = inject<NzModalRef<UpdateParticipantComponent, UpdateParticipantResult>>(NzModalRef);
 
     @ViewChild('footer')

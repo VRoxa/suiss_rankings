@@ -28,7 +28,8 @@ export const updateParticipantsScore = async (
 
     const outdatedParticipants = participants
         .filter(({ eliminated }) => !eliminated)
-        .filter(({ lastRoundScored }) => lastRoundScored !== currentRoundId);
+        .filter(({ lastRoundScored }) => lastRoundScored !== currentRoundId)
+        .map(x => ({...x}));
 
     for (const participant of outdatedParticipants) {
         const { difference } = resultsOfCurrentRound.find(
@@ -37,6 +38,8 @@ export const updateParticipantsScore = async (
         participant.score += difference;
         participant.lastRoundScored = currentRoundId;
     }
+
+    updateParticipantsImprovement(participants, outdatedParticipants);
 
     await Promise.all(
         outdatedParticipants.map((p) => repository.update('participant', p))
@@ -47,3 +50,28 @@ export const updateParticipantsScore = async (
         outdatedParticipants
     );
 };
+
+const updateParticipantsImprovement = (allParticipants: Participant[], participants: Participant[]) => {
+    const originalOrder = allParticipants
+        .filter(({ eliminated }) => !eliminated)
+        .sort(({score: a}, {score: b}) => b - a);
+
+    const currentOrder = participants.sort(({score: a}, {score: b}) => b - a);
+
+    currentOrder.forEach((value, index) => {
+        const getImprovement = () => {
+            const previousIndex = originalOrder.findIndex(x => x.id === value.id);
+            if (previousIndex === -1 || previousIndex === index) {
+                return 0;
+            }
+
+            // The current participant position is above the previous.
+            return index < previousIndex
+                ? 1
+                : -1;
+        }
+
+        value.improvement = getImprovement();
+        console.log('improvement for participant', value.name, value.improvement);
+    });
+}

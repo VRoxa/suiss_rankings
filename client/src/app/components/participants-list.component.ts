@@ -9,9 +9,9 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzListModule } from 'ng-zorro-antd/list';
 import {
     ParticipantsPageViewModel,
-    ParticipantViewModel,
 } from './models/participants.view-model';
 import { NzTypographyModule } from 'ng-zorro-antd/typography';
+import { Participant } from '../domain/entities/participant.entity';
 
 @Component({
     selector: 'sr-participants-list',
@@ -33,10 +33,13 @@ import { NzTypographyModule } from 'ng-zorro-antd/typography';
                         }
                     </span>
                     <span class="score">{{ participant.score }}</span>
-                    <nz-icon
-                        nzType="{{ ICONS[participant.difference] }}"
-                        [class]="[participant.difference]"
-                    ></nz-icon>
+
+                    @if (!participant.eliminated) {
+                        <nz-icon
+                            nzType="{{ ICONS[participant.improvement] }}"
+                            [class]="ICONS[participant.improvement]"
+                        />
+                    }
                 </nz-list-item>
             }
             
@@ -83,11 +86,11 @@ import { NzTypographyModule } from 'ng-zorro-antd/typography';
 })
 export class ParticipantsListComponent {
     readonly vm = input.required<ParticipantsPageViewModel>();
-    onParticipantClicked = output<ParticipantViewModel>();
+    onParticipantClicked = output<Participant>();
 
-    public ICONS: { [K in ParticipantViewModel['difference']]: string } = {
-        up: 'up',
-        down: 'down',
-        equal: 'minus',
+    public ICONS: { [K in Participant['improvement']]: string } = {
+        '-1': 'down',
+        '0': 'minus',
+        '1': 'up',
     };
 }

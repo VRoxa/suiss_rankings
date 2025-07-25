@@ -8,7 +8,7 @@ import { NzIconModule } from "ng-zorro-antd/icon";
 import { NzTypographyModule } from "ng-zorro-antd/typography";
 import { NzButtonModule } from "ng-zorro-antd/button";
 import { NzFlexModule } from "ng-zorro-antd/flex";
-import { ParticipantsPageViewModel, ParticipantViewModel } from "../components/models/participants.view-model";
+import { ParticipantsPageViewModel } from "../components/models/participants.view-model";
 import { ParticipantsListComponent } from "../components/participants-list.component";
 import { NzModalModule, NzModalService } from "ng-zorro-antd/modal";
 import { NzPopconfirmModule } from "ng-zorro-antd/popconfirm";
@@ -38,11 +38,6 @@ const orderByScoreDesc = <T extends Participant>(participants: T[]) => {
 
         return b.score - a.score;
     });
-}
-
-const toDifference = (diff: number) => {
-    if (diff < 0) return 'up';
-    return diff > 0 ? 'down' : 'equal';
 }
 
 @Component({
@@ -142,7 +137,6 @@ export class ParticipantsPage extends ExternalComponent {
         data: this.participants$.pipe(
             map(({ data }) => data),
             filter(data => !!data),
-            map(data => data.map<ParticipantViewModel>(x => ({...x, difference: 'equal'}))),
             map(orderByScoreDesc),
             startWith([]),
 
@@ -195,10 +189,10 @@ export class ParticipantsPage extends ExternalComponent {
         });
     }
 
-    public async openUpdateParticipant(participant: ParticipantViewModel) {
+    public async openUpdateParticipant(participant: Participant) {
         const ref = this.modal.create<
             UpdateParticipantComponent,
-            ParticipantViewModel,
+            Participant,
             UpdateParticipantResult
         >({
             nzTitle: 'Actualizar pareja',
