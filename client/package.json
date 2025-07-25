@@ -29,8 +29,10 @@
     "@netlify/functions": "^4.1.15",
     "@supabase/supabase-js": "^2.50.3",
     "@types/jsonwebtoken": "^9.0.10",
+    "chart.js": "^4.5.0",
     "jsonwebtoken": "^9.0.2",
     "ng-zorro-antd": "^20.0.0",
+    "ng2-charts": "^8.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
@@ -39,6 +41,7 @@
     "@angular/build": "^20.1.0",
     "@angular/cli": "^20.1.0",
     "@angular/compiler-cli": "^20.1.0",
+    "@types/chart.js": "^2.9.41",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^24.1.0",
     "jasmine-core": "~5.7.0",

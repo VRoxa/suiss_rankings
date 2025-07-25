@@ -4,10 +4,12 @@ import { NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
 import { SupabaseRepository } from '../../domain/repositories/supabase.service';
 import { CommonModule } from '@angular/common';
 import { NzCollapseModule } from 'ng-zorro-antd/collapse';
-import { from, map, Observable, shareReplay } from 'rxjs';
+import { from, map, shareReplay } from 'rxjs';
 import { Match } from '../../domain/entities/match.entity';
 import { MatchCardComponent } from "../match-card.component";
-import { log, mergeToObject } from '../../utils/rx-utils';
+import { mergeToObject } from '../../utils/rx-utils';
+import { BaseChartDirective } from 'ng2-charts';
+import { ChartData } from 'chart.js';
 
 type MatchViewModel = Omit<Match, 'team1 | team2'> & {
     team1: Participant,
@@ -15,26 +17,29 @@ type MatchViewModel = Omit<Match, 'team1 | team2'> & {
     round: { name: string }
 }
 
-type ChartDataViewModel = {
-    round: string;
-    score: number;
-    total: number;
-}[]
-
 interface ParticipantPerformanceComponentViewModel {
     matches: MatchViewModel[];
-    chartData: ChartDataViewModel
+    chartData: ChartData
 }
 
 @Component({
     selector: 'sr-participant-performance',
     imports: [
     CommonModule,
+    MatchCardComponent,
     NzCollapseModule,
-    MatchCardComponent
+    BaseChartDirective,
 ],
     template: `
         @if (vm$ | async; as vm) {
+            <canvas
+                baseChart
+                [data]="vm.chartData"
+                [type]="'line'"
+                [legend]="false"
+            >
+            </canvas>
+
             <nz-collapse>
                 @for (match of vm.matches; track match.id) {
                     <nz-collapse-panel [nzHeader]="match.round.name">
@@ -46,7 +51,6 @@ interface ParticipantPerformanceComponentViewModel {
             </nz-collapse>
         }
     `,
-    // styles: [`.ant-collapse-content {padding: 0 !important;}`],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ParticipantPerformanceComponent {
@@ -73,6 +77,17 @@ export class ParticipantPerformanceComponent {
                     : x.totalScore2
             };
         })),
+        map(data => {
+            const rounds = data.length;
+            const missingRounds = Array.from({length: 6 - rounds}, (_, i) => {
+                return {
+                    round: `R${rounds + 1 + i}`,
+                    score: 0,
+                }
+            });
+
+            return [...data, ...missingRounds];
+        }),
         map(data => data.reduce(
             (acc, curr) => [
                 ...acc,
@@ -83,12 +98,19 @@ export class ParticipantPerformanceComponent {
             ],
             [{ round: '', score: 0, total: 0 }]
         )),
+        map(data => {
+            return {
+                datasets: [{
+                    data: data.map(x => x.total),
+                    borderColor: '#1890ff' // TODO - see how to use :root variable
+                }],
+                labels: data.map(x => x.round)
+            }
+        }),
     );
 
     vm$ = mergeToObject<ParticipantPerformanceComponentViewModel>({
         matches: this.matches$,
         chartData: this.chartData$,
-    }).pipe(
-        log('chart')
-    );
+    })
 }
