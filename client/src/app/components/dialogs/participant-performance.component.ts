@@ -4,7 +4,9 @@ import { NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
 import { SupabaseRepository } from '../../domain/repositories/supabase.service';
 import { CommonModule } from '@angular/common';
 import { NzCollapseModule } from 'ng-zorro-antd/collapse';
-import { from, map, shareReplay } from 'rxjs';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzSkeletonModule } from 'ng-zorro-antd/skeleton';
+import { delay, from, map, shareReplay } from 'rxjs';
 import { Match } from '../../domain/entities/match.entity';
 import { MatchCardComponent } from "../match-card.component";
 import { mergeToObject } from '../../utils/rx-utils';
@@ -28,6 +30,8 @@ interface ParticipantPerformanceComponentViewModel {
     CommonModule,
     MatchCardComponent,
     NzCollapseModule,
+    NzSpinModule,
+    NzSkeletonModule,
     BaseChartDirective,
 ],
     template: `
@@ -49,6 +53,13 @@ interface ParticipantPerformanceComponentViewModel {
                     </nz-collapse-panel>
                 }
             </nz-collapse>
+        }
+        @else {
+            <div class="loading">
+                <nz-spin>
+                    <nz-skeleton />
+                </nz-spin>
+            </div>
         }
     `,
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -113,5 +124,5 @@ export class ParticipantPerformanceComponent {
     vm$ = mergeToObject<ParticipantPerformanceComponentViewModel>({
         matches: this.matches$,
         chartData: this.chartData$,
-    })
+    });
 }

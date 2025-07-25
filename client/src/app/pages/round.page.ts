@@ -72,7 +72,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
                     <nz-alert
                         nzType="error"
                         nzMessage="Knockout"
-                        nzDescription="Las cuatro últimas parejas en la clasificación, después de esta ronda, serán eliminadas"
+                        nzDescription="Las cuatro últimas parejas en la clasificación, después de esta ronda, serán eliminadas."
                         nzCloseable
                     />
                 </div>

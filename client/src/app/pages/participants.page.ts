@@ -211,6 +211,10 @@ export class ParticipantsPage extends ExternalComponent {
                 label: 'Cerrar',
                 onClick: () => ref.close(),
             }],
+            nzBodyStyle: {
+                maxHeight: '60vh',
+                overflowY: 'auto',
+            },
         });
     }
 
