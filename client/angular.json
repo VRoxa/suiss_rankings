@@ -21,10 +21,6 @@
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
-            "externalDependencies": [
-              "@angular/animations",
-              "@angular/animations/browser"
-            ],
             "assets": [
               {
                 "glob": "**/*",
