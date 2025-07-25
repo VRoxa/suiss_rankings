@@ -21,6 +21,7 @@ import { Round } from "../domain/entities/round.entity";
 import { startingRound } from "../domain/services/next-round.service";
 import { Router, RouterModule } from "@angular/router";
 import { AuthService } from "../auth/auth.service";
+import { ParticipantPerformanceComponent } from "../components/dialogs/participant-performance.component";
 
 // TODO - What happens when a participant is eliminated during a knockout round,
 // Then in future rounds, another participant has less score (bc score can substract).
@@ -78,7 +79,7 @@ const orderByScoreDesc = <T extends Participant>(participants: T[]) => {
 
                 <sr-participants-list
                     [vm]="vm"
-                    (onParticipantClicked)="vm.isAuthorized && openUpdateParticipant($event)"
+                    (onParticipantClicked)="onParticipantClick(vm.isAuthorized, $event)"
                 />
 
                 @if (vm.isAuthorized && vm.canStart) {
@@ -186,6 +187,30 @@ export class ParticipantsPage extends ExternalComponent {
         this.manualLoading$$.next(true);
         this.toService(async () => {
             await addParticipant(result);
+        });
+    }
+
+    public async onParticipantClick(isAuthorized: boolean, participant: Participant) {
+        const fn = isAuthorized
+            ? this.openUpdateParticipant.bind(this)
+            : this.openParticipantPerformance.bind(this);
+
+        await fn(participant);
+    }
+
+    public async openParticipantPerformance(participant: Participant) {
+        const ref = this.modal.create<
+            ParticipantPerformanceComponent,
+            Participant,
+            void
+        >({
+            nzTitle: `Estadísticas de '${participant.name}'`,
+            nzContent: ParticipantPerformanceComponent,
+            nzData: {...participant},
+            nzFooter: [{
+                label: 'Cerrar',
+                onClick: () => ref.close(),
+            }],
         });
     }
 

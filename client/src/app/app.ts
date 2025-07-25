@@ -154,7 +154,7 @@ export class App {
             nzFooter: [{
                 label: 'Cerrar',
                 onClick: () => ref.close(),
-            }]
+            }],
         });
     }
 }
