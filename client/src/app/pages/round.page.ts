@@ -3,11 +3,10 @@ import { SupabaseRepository } from '../domain/repositories/supabase.service';
 import { Match } from '../domain/entities/match.entity';
 import { CommonModule } from '@angular/common';
 import {
+    BehaviorSubject,
     combineLatest,
-    delay,
     filter,
     firstValueFrom,
-    from,
     map,
     merge,
     of,
@@ -86,7 +85,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
                             nzType="primary"
                             nzShape="round"
                             class="next-round__btn"
-                            [disabled]="!vm.isRoundFinished"
+                            [disabled]="!vm.isRoundFinished || vm.loading"
                             (click)="updateScores(vm.matches)"
                         >
                             Actualizar puntuación
@@ -99,7 +98,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
                             nzType="primary"
                             nzShape="round"
                             class="next-round__btn"
-                            [disabled]="!vm.isRoundFinished"
+                            [disabled]="!vm.isRoundFinished || vm.loading"
                             (click)="nextRound()"
                         >
                             Lanzar siguiente ronda
@@ -144,16 +143,12 @@ export class RoundPage extends ExternalComponent {
     private readonly notification = inject(NzNotificationService);
 
     private readonly manualLoading$$ = new Subject<boolean>();
-    private readonly forceRefresh$$ = new Subject<void>();
+    private readonly forceRefresh$$ = new BehaviorSubject<void>(void 0);
 
-    roundId$ = this.forceRefresh$$.pipe(
-        delay(1000),
-        startWith(void 0),
-        switchMap(() => this.route.paramMap.pipe(
-            map((params) => params.get('id')),
-            filter((id): id is string => !!id),
-            map((id) => +id),
-        )),
+    roundId$ = this.route.paramMap.pipe(
+        map((params) => params.get('id')),
+        filter((id): id is string => !!id),
+        map((id) => +id),
     );
 
     matches$ = this.roundId$.pipe(
@@ -189,15 +184,22 @@ export class RoundPage extends ExternalComponent {
             })) as MatchViewModel[];
         }),
         map((matches) => orderMatches(matches)),
-        shareReplay(1),
+        shareReplay({ bufferSize: 1, refCount: true }),
         startWith([]),
     );
 
-    allRounds$ = this.repository.disposable.getAll<Round>('round');
+    allRounds$ = this.forceRefresh$$.pipe(
+        switchMap(() =>
+            this.repository.disposable.getAll<Round>('round')
+        ),
+    );
 
     vm$ = mergeToObject<RoundPageViewModel>({
         isAuthorized: this.auth.isAuthorized$,
-        loading: merge(loadingFromQuery(this.source$), this.manualLoading$$),
+        loading: merge(
+            loadingFromQuery(this.source$),
+            this.manualLoading$$
+        ),
         matches: this.mappedMatches$,
         isCurrentRound: combineLatest([
             this.roundId$,
@@ -207,7 +209,6 @@ export class RoundPage extends ExternalComponent {
                 const lastRound = Math.max(...rounds.map((x) => x.id));
                 return id === lastRound;
             }),
-            // startWith(false),
         ),
         isRoundFinished: this.mappedMatches$.pipe(
             sswitch(
@@ -297,6 +298,8 @@ export class RoundPage extends ExternalComponent {
             );
 
             this.router.navigate(['/round', nextRoundId]);
+
+            // Refresh rounds, so that control flags are properly recomputed.
             this.forceRefresh$$.next();
         });
     }
