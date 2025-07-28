@@ -24,6 +24,8 @@ import { AuthService } from './auth/auth.service';
 import { provideCharts } from 'ng2-charts';
 import {
     CategoryScale,
+    Colors,
+    Legend,
     LinearScale,
     LineController,
     LineElement,
@@ -75,7 +77,9 @@ export const appConfig: ApplicationConfig = {
                 PointElement,
                 CategoryScale,
                 LinearScale,
+                Colors,
                 Tooltip,
+                Legend,
             ],
         }),
     ],

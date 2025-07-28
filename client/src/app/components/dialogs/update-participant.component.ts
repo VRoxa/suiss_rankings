@@ -76,14 +76,6 @@ export interface UpdateParticipantResult {
                             Eliminar
                         </button>
                     }
-
-                    <button
-                        nz-button
-                        nzShape="circle"
-                        (click)="openParticipantPerformance()"
-                    >
-                        <nz-icon nzType="line-chart"/>
-                    </button>
                 </div>
 
                 <div>

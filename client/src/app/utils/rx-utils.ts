@@ -1,5 +1,6 @@
 import {
     combineLatest,
+    filter,
     iif,
     map,
     Observable,
@@ -52,6 +53,15 @@ export const loadingFromQuery = (
         startWith(true)
     );
 };
+
+export const dataFromQuery = <T>(
+    source: Observable<QueryResult<T>>
+): Observable<T[]> => {
+    return source.pipe(
+        map(({data}) => data),
+        filter((data): data is T[] => !!data),
+    );
+}
 
 export const sswitch = <TSource, TResult = TSource>(
     condition: Predicate<TSource>,

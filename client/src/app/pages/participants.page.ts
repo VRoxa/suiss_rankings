@@ -79,7 +79,7 @@ const orderByScoreDesc = <T extends Participant>(participants: T[]) => {
 
                 <sr-participants-list
                     [vm]="vm"
-                    (onParticipantClicked)="onParticipantClick(vm.isAuthorized, $event)"
+                    (onParticipantClicked)="vm.isAuthorized && openUpdateParticipant($event)"
                 />
 
                 @if (vm.isAuthorized && vm.canStart) {
@@ -140,18 +140,6 @@ export class ParticipantsPage extends ExternalComponent {
             filter(data => !!data),
             map(orderByScoreDesc),
             startWith([]),
-
-            // TODO (NTH) - Calculate up/down based on previous rounds...
-            // scan((acc, curr) => {
-            //     if (!acc.length) {
-            //         return curr.map(x => ({...x, difference: 'equal'}));
-            //     }
-                
-            //     return curr.map((x, i) => ({
-            //         ...x,
-            //         difference: toDifference(i - acc.findIndex(({ id }) => id === x.id)),
-            //     }));
-            // }),
         ),
         canStart: this.rounds$.pipe(
             map(({ data }) => data),
@@ -187,34 +175,6 @@ export class ParticipantsPage extends ExternalComponent {
         this.manualLoading$$.next(true);
         this.toService(async () => {
             await addParticipant(result);
-        });
-    }
-
-    public async onParticipantClick(isAuthorized: boolean, participant: Participant) {
-        const fn = isAuthorized
-            ? this.openUpdateParticipant.bind(this)
-            : this.openParticipantPerformance.bind(this);
-
-        await fn(participant);
-    }
-
-    public async openParticipantPerformance(participant: Participant) {
-        const ref = this.modal.create<
-            ParticipantPerformanceComponent,
-            Participant,
-            void
-        >({
-            nzTitle: `Estadísticas de '${participant.name}'`,
-            nzContent: ParticipantPerformanceComponent,
-            nzData: {...participant},
-            nzFooter: [{
-                label: 'Cerrar',
-                onClick: () => ref.close(),
-            }],
-            nzBodyStyle: {
-                maxHeight: '60vh',
-                overflowY: 'auto',
-            },
         });
     }
 

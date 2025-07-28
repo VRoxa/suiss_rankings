@@ -13,6 +13,8 @@ import { AdminAccessButtonComponent } from './components/admin-access-button.com
 import { SettingsComponent } from './components/dialogs/settings.component';
 import { AuthService } from './auth/auth.service';
 import { mergeToObject } from './utils/rx-utils';
+import { ParticipantPerformanceComponent } from './components/dialogs/participant-performance.component';
+import { Participant } from './domain/entities/participant.entity';
 
 interface AppViewModel {
     isAuthorized: boolean;
@@ -45,6 +47,16 @@ interface AppViewModel {
                 </ul>
     
                 <div class="header__buttons">
+
+                    <button
+                        nz-button
+                        nzSize="small"
+                        nzShape="circle"
+                        (click)="openParticipantPerformance()"    
+                    >
+                        <nz-icon nzType="line-chart"/>
+                    </button>
+
                     <button
                         nz-button
                         nzSize="small"
@@ -127,6 +139,21 @@ export class App {
     vm$ = mergeToObject<AppViewModel>({
         isAuthorized: this.auth.isAuthorized$,
     });
+
+    public async openParticipantPerformance() {
+        const ref = this.modal.create({
+            nzTitle: `Estadísticas`,
+            nzContent: ParticipantPerformanceComponent,
+            nzFooter: [{
+                label: 'Cerrar',
+                onClick: () => ref.close(),
+            }],
+            nzBodyStyle: {
+                maxHeight: '65vh',
+                overflowY: 'auto',
+            },
+        });
+    }
 
     openInfoModal() {
         const ref = this.modal.create({

@@ -1,58 +1,113 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Participant } from '../../domain/entities/participant.entity';
-import { NZ_MODAL_DATA } from 'ng-zorro-antd/modal';
 import { SupabaseRepository } from '../../domain/repositories/supabase.service';
 import { CommonModule } from '@angular/common';
 import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzSkeletonModule } from 'ng-zorro-antd/skeleton';
-import { delay, from, map, shareReplay } from 'rxjs';
+import { NzSelectModule } from 'ng-zorro-antd/select';
+import { BehaviorSubject, map, of, shareReplay, switchMap } from 'rxjs';
 import { Match } from '../../domain/entities/match.entity';
 import { MatchCardComponent } from "../match-card.component";
-import { mergeToObject } from '../../utils/rx-utils';
+import { dataFromQuery, mergeToObject, sswitch } from '../../utils/rx-utils';
 import { BaseChartDirective } from 'ng2-charts';
-import { ChartData } from 'chart.js';
+import { ChartData, ChartOptions } from 'chart.js';
+import { Round } from '../../domain/entities/round.entity';
+import { FormsModule } from '@angular/forms';
+import { NzTabsModule } from 'ng-zorro-antd/tabs';
 
-type MatchViewModel = Omit<Match, 'team1 | team2'> & {
+type MatchWithRound = Omit<Match, 'round'> & {
+    round: { name: string }
+}
+
+const groupMatchesByParticipant = (matches: MatchWithRound[]): {[key: number]: MatchWithRound[]} => {
+    const add = (acc: {[key: number]: MatchWithRound[]}, match: MatchWithRound, participant: number) => {
+        if (!acc[participant]) {
+            acc[participant] = [];
+        }
+
+        acc[participant] = [...acc[participant], match];
+    }
+
+    return matches.reduce(
+        (acc, curr) => {
+            add(acc, curr, curr.team1);
+            add(acc, curr, curr.team2);
+            return acc;
+        },
+        {}
+    );
+}
+
+type MatchViewModel = Omit<Match, 'team1 | team2 | round'> & {
     team1: Participant,
     team2: Participant,
     round: { name: string }
 }
 
 interface ParticipantPerformanceComponentViewModel {
-    matches: MatchViewModel[];
-    chartData: ChartData
+    availableParticipants: Participant[], 
+    selectedParticipants: Participant[],
+    matches: ({
+        participant: Participant,
+        matches: MatchViewModel[],
+    })[];
+    chart: {
+        data: ChartData,
+        options: ChartOptions,
+    }
 }
 
 @Component({
     selector: 'sr-participant-performance',
     imports: [
     CommonModule,
+    FormsModule,
     MatchCardComponent,
     NzCollapseModule,
     NzSpinModule,
     NzSkeletonModule,
+    NzSelectModule,
+    NzTabsModule,
     BaseChartDirective,
 ],
     template: `
         @if (vm$ | async; as vm) {
+            <nz-select
+                nzMode="multiple"
+                nzPlaceHolder="Selecciona parejas para filtrar"
+                [ngModel]="vm.selectedParticipants"
+                (ngModelChange)="selectedParticipants$$.next($event)"
+            >
+                @for (participant of vm.availableParticipants; track participant.id) {
+                    <nz-option [nzLabel]="participant.name" [nzValue]="participant"/>
+                }
+            </nz-select>
+
             <canvas
                 baseChart
-                [data]="vm.chartData"
+                [data]="vm.chart.data"
+                [options]="vm.chart.options"
                 [type]="'line'"
-                [legend]="false"
+                [height]="250"
             >
             </canvas>
 
-            <nz-collapse>
-                @for (match of vm.matches; track match.id) {
-                    <nz-collapse-panel [nzHeader]="match.round.name">
-                        <div style="margin: -1.5rem">
-                            <sr-match-card [match]="match" />
-                        </div>
-                    </nz-collapse-panel>
+            <nz-tabs>
+                @for (group of vm.matches; track $index) {
+                    <nz-tab [nzTitle]="group.participant.name">
+                         <nz-collapse>
+                            @for (match of group.matches; track match.id) {
+                                <nz-collapse-panel [nzHeader]="match.round.name">
+                                    <div style="margin: -1.5rem">
+                                        <sr-match-card [match]="match" />
+                                    </div>
+                                </nz-collapse-panel>
+                            }
+                        </nz-collapse>
+                    </nz-tab>
                 }
-            </nz-collapse>
+            </nz-tabs>
         }
         @else {
             <div class="loading">
@@ -62,67 +117,145 @@ interface ParticipantPerformanceComponentViewModel {
             </div>
         }
     `,
+    styles: [
+        `
+            nz-select {
+                width: 100%;
+            }
+        `
+    ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ParticipantPerformanceComponent {
     private readonly repository = inject(SupabaseRepository);
-    participant = inject<Participant>(NZ_MODAL_DATA);
+    selectedParticipants$$ = new BehaviorSubject<Participant[]>([]);
 
-    matches$ = from(
-        this.repository.disposable.raw
-            .from('match')
-            .select('*, round (name), team1:participant!team1 (name, id), team2:participant!team2 (name, id)')
-            .or(`team1.eq.${this.participant.id},team2.eq.${this.participant.id}`)
-            .order('round')
-    ).pipe(
-        map(({ data }) => data as MatchViewModel[]),
-        map(matches => matches.filter(({ inProgress}) => !inProgress)),
-        shareReplay(1),
+    allParticipants$ = this.repository.getAll<Participant>('participant').pipe(dataFromQuery);
+    allMatches$ = this.repository.getAll<Match>('match').pipe(dataFromQuery);
+    allRounds$ = this.repository.getAll<Round>('round').pipe(dataFromQuery);
+
+    selectedMatches$ = this.selectedParticipants$$.pipe(
+        sswitch(
+            (participants) => !!participants.length,
+            (participants) => this.allMatches$.pipe(
+                map((matches) => matches.filter(({ inProgress }) => !inProgress)),
+                switchMap((matches) => this.allRounds$.pipe(
+                    map((rounds) => matches.map((match) => ({
+                        ...match,
+                        round: { name: rounds.find(x => x.id === match.round)!.name },
+                    } as MatchWithRound))),
+                )),
+                map((matches) => participants.map((participant) => ({
+                    participant,
+                    matches: matches.filter(({ team1, team2 }) => [team1, team2].includes(participant.id)),
+                }))),
+                switchMap((matches) => this.allParticipants$.pipe(
+                    map((participants) => matches.map((x) => ({
+                        ...x,
+                        matches: x.matches.map((match) => ({
+                            ...match,
+                            team1: participants.find((x) => x.id === match.team1)!,
+                            team2: participants.find((x) => x.id === match.team2)!,
+                        } as MatchViewModel))
+                    }))),
+                )),
+            ),
+            () => of([]),
+        ),
+        shareReplay({ bufferSize: 1, refCount: true }),
     );
 
-    chartData$ = this.matches$.pipe(
-        map(data => data.map((x) => {
-            return {
-                round: x.round.name,
-                score: x.team1.id === this.participant.id
-                    ? x.totalScore1
-                    : x.totalScore2
-            };
-        })),
-        map(data => {
-            const rounds = data.length;
-            const missingRounds = Array.from({length: 6 - rounds}, (_, i) => {
-                return {
-                    round: `R${rounds + 1 + i}`,
-                    score: 0,
-                }
-            });
-
-            return [...data, ...missingRounds];
-        }),
-        map(data => data.reduce(
-            (acc, curr) => [
-                ...acc,
-                {
-                    ...curr,
-                    total: acc[acc.length - 1].total + curr.score
-                }
-            ],
-            [{ round: '', score: 0, total: 0 }]
+    chart$ = this.allMatches$.pipe(
+        map((matches) => matches.filter(({ inProgress }) => !inProgress)),
+        switchMap((matches) => this.allRounds$.pipe(
+            map((rounds) => matches.map((match) => ({
+                ...match,
+                round: { name: rounds.find(x => x.id === match.round)!.name },
+            } as MatchWithRound))),
         )),
-        map(data => {
-            return {
-                datasets: [{
-                    data: data.map(x => x.total),
-                    borderColor: '#1890ff' // TODO - see how to use :root variable
-                }],
-                labels: data.map(x => x.round)
+        map(groupMatchesByParticipant),
+        switchMap((groups) => this.selectedParticipants$$.pipe(
+            sswitch(
+                (participants) => !!participants.length,
+                (participants) => of(
+                    participants.reduce(
+                        (acc, curr) => {
+                            acc[curr.id] = groups[curr.id];
+                            return acc;
+                        },
+                        {} as {[key: number]: MatchWithRound[]}
+                    ),
+                ),
+                () => of(groups),
+            ),
+        )),
+        map((groups) => Object.keys(groups).map((participant) => {
+            
+            // Select total scores
+            const totals = groups[+participant].map((match) => ({
+                round: match.round.name,
+                score: match.team1 === +participant
+                    ? match.totalScore1
+                    : match.totalScore2,
+            }));
+
+            // Fill missing rounds
+            const rounds = totals.length;
+            const missingRounds = Array.from({ length: 6 - rounds }, (_, i) => ({
+                round: `R${rounds + 1 + i}`,
+                score: 0,
+            }));
+
+            const withRounds = [...totals, ...missingRounds];
+
+            // Reduce all scores to total
+            const reducedScores = withRounds.reduce(
+                (acc, curr) => [
+                    ...acc,
+                    {
+                        ...curr,
+                        total: acc[acc.length - 1].total + curr.score
+                    }
+                ],
+                [{ round: '', score: 0, total: 0 }],
+            );
+
+            // Dataset
+            const dataset = {
+                data: reducedScores.map(({ total }) => total),
+                label: participant
+            };
+
+            return dataset;
+        })),
+        switchMap((datasets) => this.allParticipants$.pipe(
+            map((participants) => datasets.map((dataset) => ({
+                ...dataset,
+                label: participants.find((participant) => participant.id === +dataset.label)!.name,
+            })))
+        )),
+        map((datasets) => ({
+            data: {
+                datasets,
+                labels: Array.from({length: 7}, (_, i) => !!i ? `R${i}` : ''), // First ghost round (R0) is an empty string
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        align: 'start' as const,
+                        padding: 20
+                    },
+                }
             }
-        }),
+        })),
     );
 
     vm$ = mergeToObject<ParticipantPerformanceComponentViewModel>({
-        matches: this.matches$,
-        chartData: this.chartData$,
+        availableParticipants: this.allParticipants$,
+        selectedParticipants: this.selectedParticipants$$,
+        matches: this.selectedMatches$,
+        chart: this.chart$,
     });
 }
