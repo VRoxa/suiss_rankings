@@ -12,8 +12,10 @@ export const handler: Handler = async (event: HandlerEvent, _: HandlerContext) =
     const supabaseUrl = process.env['NG_APP_Supabase_URL'];
     const supabaseKey = process.env['NG_APP_Supabase_API_KEY'];
 
+    const payload = JSON.stringify({ supabaseKey, supabaseUrl });
+
     return {
         statusCode: 200,
-        body: JSON.stringify({ supabaseKey, supabaseUrl }),
+        body: btoa(payload),
     };
 }

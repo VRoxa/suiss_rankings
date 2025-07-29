@@ -148,7 +148,6 @@ export class SupabaseRepository {
                     }),
                 )
             ),
-            // tap(x => console.log('received new data from table', tableName, x)),
             shareReplay(1)
         );
     }

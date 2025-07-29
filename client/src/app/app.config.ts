@@ -40,15 +40,12 @@ const initializeSupabaseClient = async () => {
     const clientProvider = inject(SupabaseClientProvider);
 
     const req$ = http
-        .get<{
-            supabaseKey: string;
-            supabaseUrl: string;
-        }>('/.netlify/functions/provide-credentials')
+        .get('/.netlify/functions/provide-credentials', { responseType: 'text' })
         .pipe(
             tap((credentials) => {
-                const { supabaseKey, supabaseUrl } = credentials;
+                const { supabaseUrl, supabaseKey } = JSON.parse(atob(credentials));
                 clientProvider.initialize(supabaseUrl, supabaseKey);
-            })
+            }),
         );
 
     await firstValueFrom(req$);
