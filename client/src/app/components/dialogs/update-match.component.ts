@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { AfterViewInit, Component, inject, TemplateRef, ViewChild } from '@angular/core';
 import { MatchViewModel } from '../models/rounds.view-model';
 import { CommonModule } from '@angular/common';
 import { NzInputModule } from 'ng-zorro-antd/input';
@@ -7,87 +7,123 @@ import { NzFormModule } from 'ng-zorro-antd/form';
 import { FormsModule } from '@angular/forms';
 import { NZ_MODAL_DATA, NzModalModule, NzModalRef } from 'ng-zorro-antd/modal';
 import { NzGridModule } from 'ng-zorro-antd/grid';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, firstValueFrom, from, map } from 'rxjs';
 import { NzCheckboxModule } from 'ng-zorro-antd/checkbox';
 import { MatchScore } from '../../domain/entities/match.entity';
+import { ExternalComponent } from '../../pages/abstractions/external';
+import { Configuration } from '../models/configuration.model';
+import { getConfiguration } from '../../domain/services/configuration.service';
+import { mergeToObject } from '../../utils/rx-utils';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzButtonModule } from 'ng-zorro-antd/button';
+
+type UpdateMatchComponentViewModel = {
+    configuration: Configuration;
+    invalid: boolean;
+}
 
 @Component({
     selector: 'sr-update-match',
     imports: [
-        CommonModule,
-        FormsModule,
-        NzInputModule,
-        NzInputNumberModule,
-        NzFormModule,
-        NzModalModule,
-        NzGridModule,
-        NzCheckboxModule,
-    ],
+    CommonModule,
+    FormsModule,
+    NzInputModule,
+    NzInputNumberModule,
+    NzFormModule,
+    NzModalModule,
+    NzGridModule,
+    NzCheckboxModule,
+    NzSpinModule,
+    NzButtonModule,
+],
     template: `
-        <form nz-form [nzLayout]="'horizontal'">
-            <nz-row [nzGutter]="16" nzAlign="middle">
-                <nz-col [nzSpan]="8"> </nz-col>
-                <nz-col [nzSpan]="8">
-                    <div class="participant-title">{{ match.team1.name }}</div>
-                </nz-col>
-                <nz-col [nzSpan]="8">
-                    <div class="participant-title">{{ match.team2.name }}</div>
-                </nz-col>
-            </nz-row>
-
-            @for (gameScore of match.score; track i; let i = $index) {
-                @if (gameScore) {
-                    <nz-form-item [nzGutter]="16" nzAlign="middle">
-                        <nz-form-control>
-                            <nz-row [nzGutter]="16">
-                                <nz-col [nzSpan]="8">
-                                    <nz-form-label nzRequired nzFor="score-{{ i }}-1">
-                                        Partida {{ i + 1 }}
-                                    </nz-form-label>
-                                </nz-col>
-                                <nz-col [nzSpan]="8">
-                                    <nz-input-number
-                                        id="score-{{ i }}-1"
-                                        [(ngModel)]="gameScore.score1"
-                                        nzMin="0"
-                                        nzMax="10"
-                                        [ngModelOptions]="{ standalone: true }"
-                                        (ngModelChange)="onScoreChange(i, 'score1')"
-                                    />
-                                </nz-col>
-                                <nz-col [nzSpan]="8">
-                                    <nz-input-number
-                                        id="score-{{ i }}-2"
-                                        [(ngModel)]="gameScore.score2"
-                                        nzMin="0"
-                                        nzMax="10"
-                                        [ngModelOptions]="{ standalone: true }"
-                                        (ngModelChange)="onScoreChange(i, 'score2')"
-                                    />
-                                </nz-col>
-                            </nz-row>
-                        </nz-form-control>
-                    </nz-form-item>
+        @if (vm$ | async; as vm) {
+            <form nz-form [nzLayout]="'horizontal'">
+                <nz-row [nzGutter]="16" nzAlign="middle">
+                    <nz-col [nzSpan]="8"> </nz-col>
+                    <nz-col [nzSpan]="8">
+                        <div class="participant-title">{{ match.team1.name }}</div>
+                    </nz-col>
+                    <nz-col [nzSpan]="8">
+                        <div class="participant-title">{{ match.team2.name }}</div>
+                    </nz-col>
+                </nz-row>
+    
+                @for (gameScore of match.score; track i; let i = $index) {
+                    @if (gameScore) {
+                        <nz-form-item [nzGutter]="16" nzAlign="middle">
+                            <nz-form-control>
+                                <nz-row [nzGutter]="16">
+                                    <nz-col [nzSpan]="8">
+                                        <nz-form-label nzRequired nzFor="score-{{ i }}-1">
+                                            Partida {{ i + 1 }}
+                                        </nz-form-label>
+                                    </nz-col>
+                                    <nz-col [nzSpan]="8">
+                                        <nz-input-number
+                                            id="score-{{ i }}-1"
+                                            [(ngModel)]="gameScore.score1"
+                                            nzMin="0"
+                                            [nzMax]="vm.configuration.goalsPerMatch"
+                                            [ngModelOptions]="{ standalone: true }"
+                                            (ngModelChange)="onScoreChange(i, 'score1', vm.configuration)"
+                                        />
+                                    </nz-col>
+                                    <nz-col [nzSpan]="8">
+                                        <nz-input-number
+                                            id="score-{{ i }}-2"
+                                            [(ngModel)]="gameScore.score2"
+                                            nzMin="0"
+                                            [nzMax]="vm.configuration.goalsPerMatch"
+                                            [ngModelOptions]="{ standalone: true }"
+                                            (ngModelChange)="onScoreChange(i, 'score2', vm.configuration)"
+                                        />
+                                    </nz-col>
+                                </nz-row>
+                            </nz-form-control>
+                        </nz-form-item>
+                    }
                 }
-            }
+    
+                <nz-form-item [nzGutter]="16" nzAlign="middle">
+                    <nz-form-control>
+                        <nz-row [nzGutter]="16">
+                            <!-- <nz-col [nzSpan]="8"> </nz-col> -->
+                            <nz-col [nzSpan]="24">
+                                <label nz-checkbox
+                                    [ngModel]="!match.inProgress"
+                                    (ngModelChange)="match.inProgress = !$event; checkMatchValidity(vm.configuration.goalsPerMatch)"
+                                    [ngModelOptions]="{ standalone: true }"
+                                >
+                                    Cruce terminado
+                                </label>
+                            </nz-col>
+                        </nz-row>
+                    </nz-form-control>
+                </nz-form-item>
+            </form>
+        }
+        @else {
+            <nz-spin></nz-spin>
+        }
 
-            <nz-form-item [nzGutter]="16" nzAlign="middle">
-                <nz-form-control>
-                    <nz-row [nzGutter]="16">
-                        <!-- <nz-col [nzSpan]="8"> </nz-col> -->
-                        <nz-col [nzSpan]="24">
-                            <label nz-checkbox
-                                [ngModel]="!match.inProgress"
-                                (ngModelChange)="match.inProgress = !$event; checkMatchValidity()"
-                                [ngModelOptions]="{ standalone: true }"
-                            >
-                                Cruce terminado
-                            </label>
-                        </nz-col>
-                    </nz-row>
-                </nz-form-control>
-            </nz-form-item>
-        </form>
+        <ng-template #footer>
+            @if (vm$ | async; as vm) {
+                <button nz-button
+                    (click)="ref.close()"
+                >
+                    Cancelar
+                </button>
+    
+                <button nz-button
+                    nzType="primary"
+                    [disabled]="vm.invalid"
+                    (click)="ref.close(match)"
+                >
+                    Aceptar
+                </button>
+            }
+        </ng-template>
     `,
     styles: [
         `
@@ -107,27 +143,42 @@ import { MatchScore } from '../../domain/entities/match.entity';
         `,
     ],
 })
-export class UpdateMatchComponent {
+export class UpdateMatchComponent extends ExternalComponent implements AfterViewInit {
+    readonly ref = inject<NzModalRef>(NzModalRef);
     match = inject<MatchViewModel>(NZ_MODAL_DATA);
-    ref = inject<NzModalRef>(NzModalRef);
+
+    @ViewChild('footer')
+    footer!: TemplateRef<any>;
+
     disableOk$$ = new BehaviorSubject<boolean>(true);
+    configuration$ = this.toService<Configuration>(getConfiguration);
 
-    constructor() {
+    vm$ = mergeToObject<UpdateMatchComponentViewModel>({
+        configuration: from(this.configuration$),
+        invalid: this.disableOk$$,
+    });
+
+    ngAfterViewInit(): void {
         this.ref.updateConfig({
-            // Override the Ok handler, to include the match on callback
-            nzOnOk: () => this.ref.close(this.match),
+            nzFooter: this.footer
         });
 
-        this.disableOk$$.subscribe((disabled) => {
-            this.ref.updateConfig({
-                nzOkDisabled: disabled,
-            });
-        });
-
-        this.checkMatchValidity();
+        (async () => {
+            const { goalsPerMatch } = await firstValueFrom(
+                this.vm$.pipe(
+                    map(({ configuration }) => configuration),
+                    distinctUntilChanged(),
+            ));
+    
+            this.checkMatchValidity(goalsPerMatch);
+        })();
     }
 
-    onScoreChange(gameIndex: number, scoreType: 'score1' | 'score2') {
+    onScoreChange(
+        gameIndex: number,
+        scoreType: 'score1' | 'score2',
+        { goalsPerMatch }: Configuration,
+    ) {
         const currentScore = this.match.score[gameIndex];
         if (currentScore === null) {
             return;
@@ -141,28 +192,28 @@ export class UpdateMatchComponent {
             scoreType === 'score1' &&
             currentScore.score1 !== undefined &&
             currentScore.score1 >= 0 &&
-            currentScore.score1 <= 9
+            currentScore.score1 <= (goalsPerMatch - 1)
         ) {
-            currentScore.score2 = 10;
+            currentScore.score2 = goalsPerMatch;
         } else if (
             scoreType === 'score2' &&
             currentScore.score2 !== undefined &&
             currentScore.score2 >= 0 &&
-            currentScore.score2 <= 9
+            currentScore.score2 <= (goalsPerMatch - 1)
         ) {
-            currentScore.score1 = 10;
+            currentScore.score1 = goalsPerMatch;
         }
 
         if (
             currentScore.score1 !== undefined &&
             currentScore.score2 !== undefined &&
-            (currentScore.score1 === 10 || currentScore.score2 === 10)
+            (currentScore.score1 === goalsPerMatch || currentScore.score2 === goalsPerMatch)
         ) {
-            if (currentScore.score1 === 10 && currentScore.score2 !== 10) {
+            if (currentScore.score1 === goalsPerMatch && currentScore.score2 !== goalsPerMatch) {
                 currentScore.winner = 1;
             } else if (
-                currentScore.score2 === 10 &&
-                currentScore.score1 !== 10
+                currentScore.score2 === goalsPerMatch &&
+                currentScore.score1 !== goalsPerMatch
             ) {
                 currentScore.winner = 2;
             }
@@ -173,7 +224,7 @@ export class UpdateMatchComponent {
             this.checkTieBreaker();
         }
 
-        this.checkMatchValidity();
+        this.checkMatchValidity(goalsPerMatch);
     }
 
     checkTieBreaker() {
@@ -192,7 +243,9 @@ export class UpdateMatchComponent {
         }
     }
 
-    checkMatchValidity() {
+    checkMatchValidity(
+        goalsPerMatch: number
+    ) {
         const isValid = (score: MatchScore | null): boolean => {
             if (!score) {
                 // Null score is OK
@@ -204,11 +257,11 @@ export class UpdateMatchComponent {
                 return true;                
             }
 
-            if (score1 === 10 && score2 === 10) {
+            if (score1 === goalsPerMatch && score2 === goalsPerMatch) {
                 return false;
             }
 
-            if (score1 !== 10 && score2 !== 10) {
+            if (score1 !== goalsPerMatch && score2 !== goalsPerMatch) {
                 return false;
             }
 

@@ -7,7 +7,6 @@ import { NzButtonModule } from "ng-zorro-antd/button";
 import { NzPopconfirmModule } from "ng-zorro-antd/popconfirm";
 import { Participant } from "../../domain/entities/participant.entity";
 import { NzIconModule } from "ng-zorro-antd/icon";
-import { ParticipantPerformanceComponent } from "./participant-performance.component";
 
 type UpdateParticipantAction = 'update' | 'delete' | 'none';
 
@@ -25,7 +24,6 @@ export interface UpdateParticipantResult {
         NzButtonModule,
         NzIconModule,
         NzPopconfirmModule,
-        NzModalModule,
     ],
     template: `
         <nz-input-group nzAddOnBefore="Nombre">
@@ -106,7 +104,6 @@ export interface UpdateParticipantResult {
 })
 export class UpdateParticipantComponent implements AfterViewInit {
 
-    readonly modal = inject(NzModalService);
     readonly participant = inject<Participant>(NZ_MODAL_DATA);
     readonly ref = inject<NzModalRef<UpdateParticipantComponent, UpdateParticipantResult>>(NzModalRef);
 
@@ -116,24 +113,6 @@ export class UpdateParticipantComponent implements AfterViewInit {
     ngAfterViewInit(): void {
         this.ref.updateConfig({
             nzFooter: this.footer
-        });
-    }
-
-    public openParticipantPerformance() {
-        this.close('none');
-
-        const ref = this.modal.create<
-            ParticipantPerformanceComponent,
-            Participant,
-            void
-        >({
-            nzTitle: `Estadísticas de '${this.participant.name}'`,
-            nzContent: ParticipantPerformanceComponent,
-            nzData: {...this.participant},
-            nzFooter: [{
-                label: 'Cerrar',
-                onClick: () => ref.close(),
-            }],
         });
     }
 
