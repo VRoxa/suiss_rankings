@@ -10,33 +10,91 @@ import { ExternalComponent } from '../../pages/abstractions/external';
 import { resetDatabase } from '../../domain/services/reset-database.service';
 import { NzNotificationService } from 'ng-zorro-antd/notification';
 import { NzModalRef } from 'ng-zorro-antd/modal';
-import { getConfiguration } from '../../domain/services/configuration.service';
+import { getConfiguration, saveConfiguration } from '../../domain/services/configuration.service';
 import { Configuration } from '../models/configuration.model';
+import { NzSpinModule } from 'ng-zorro-antd/spin';
+import { NzSkeletonModule } from 'ng-zorro-antd/skeleton';
+import { NzDividerModule } from 'ng-zorro-antd/divider';
+import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
+import { FormsModule } from '@angular/forms';
 
 interface SettingsViewModel {
     configuration: Configuration;
-    loading: boolean;
+    wippingDatabase: boolean;
+    savingConfiguration: boolean;
 }
 
 @Component({
     selector: 'sr-settings',
     imports: [
         CommonModule,
+        FormsModule,
         NzFlexModule,
         NzButtonModule,
         NzIconModule,
         NzPopconfirmModule,
+        NzSpinModule,
+        NzSkeletonModule,
+        NzDividerModule,
+        NzInputNumberModule,
     ],
     providers: [NzNotificationService],
     template: `
         @if (vm$ | async; as vm) {
+            <ng-template #configuration>
+                <nz-input-number class="input" [(ngModel)]="vm.configuration.goalsPerMatch">
+                    <span nzInputAddonBefore class="input__prefix">Goles por partida</span>
+                </nz-input-number>
+
+                <nz-divider nzText="Puntuación"></nz-divider>
+
+                <nz-input-number class="input" [(ngModel)]="vm.configuration.scorePoints.fullWin">
+                    <span nzInputAddonBefore class="input__prefix">Victoria cruce</span>
+                    <span nzInputAddonAfter>pts</span>
+                </nz-input-number>
+
+                <nz-input-number class="input" [(ngModel)]="vm.configuration.scorePoints.winGame">
+                    <span nzInputAddonBefore class="input__prefix">Victoria partida</span>
+                    <span nzInputAddonAfter>pts</span>
+                </nz-input-number>
+
+                <nz-input-number class="input" [(ngModel)]="vm.configuration.scorePoints.loseGame">
+                    <span nzInputAddonBefore class="input__prefix">Derrota partida</span>
+                    <span nzInputAddonAfter>pts</span>
+                </nz-input-number>
+
+                <nz-input-number class="input" [(ngModel)]="vm.configuration.scorePoints.goalDifference">
+                    <span nzInputAddonBefore class="input__prefix">Diferencia de goles</span>
+                    <span nzInputAddonAfter>pts</span>
+                </nz-input-number>
+
+                <div class="save-config">
+                    <button nz-button
+                        nzType="primary"
+                        (click)="saveConfiguration(vm.configuration)"
+                    >
+                        Guardar configuración
+                    </button>
+                </div>
+            </ng-template>
+
+            @if (vm.savingConfiguration) {
+                <nz-spin nzTip="Guardando configuración...">
+                    <ng-container *ngTemplateOutlet="configuration"></ng-container>
+                </nz-spin>
+            }
+            @else {
+                <ng-container *ngTemplateOutlet="configuration"></ng-container>
+            }
+
+            <nz-divider nzText="Danger zone"></nz-divider>
+
             <div nz-flex [nzVertical]="true" nzAlign="center">
                 <button
                     nz-button
                     nzDanger
                     nzType="primary"
-                    nzShape="round"
-                    [nzLoading]="vm.loading"
+                    [nzLoading]="vm.wippingDatabase"
                     nzSize="large"
                     nz-popconfirm
                     nzPopconfirmPlacement="bottom"
@@ -45,8 +103,15 @@ interface SettingsViewModel {
                     [nzOkButtonProps]="{ nzDanger: true }"
                 >
                     <nz-icon nzType="warning" nzTheme="fill" />
-                    {{ vm.loading ? 'Limpiando base de datos...' : 'Borrar datos' }}
+                    {{ vm.wippingDatabase ? 'Limpiando base de datos...' : 'Borrar datos' }}
                 </button>
+            </div>
+        }
+        @else {
+            <div class="loading">
+                <nz-spin>
+                    <nz-skeleton />
+                </nz-spin>
             </div>
         }
     `,
@@ -60,6 +125,22 @@ interface SettingsViewModel {
                     width: 100%;
                 }
             }
+
+            .input {
+                width: 100%;
+
+                &__prefix {
+                    display: block;
+                    width: 10rem;
+                    text-align: start;
+                }
+            }
+
+            .save-config {
+                display: flex;
+                flex-direction: row-reverse;
+                margin-top: 1rem;
+            }
         `,
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,17 +149,19 @@ export class SettingsComponent extends ExternalComponent {
     private readonly notification = inject(NzNotificationService);
     private readonly ref = inject(NzModalRef);
 
-    manualLoading$$ = new BehaviorSubject<boolean>(false);
+    wippingDatabase$$ = new BehaviorSubject<boolean>(false);
+    savingConfiguration$$ = new BehaviorSubject<boolean>(false);
 
     configuration$ = this.toService<Configuration>(getConfiguration);
 
     vm$ = mergeToObject<SettingsViewModel>({
         configuration: from(this.configuration$),
-        loading: this.manualLoading$$,
+        wippingDatabase: this.wippingDatabase$$,
+        savingConfiguration: this.savingConfiguration$$,
     });
 
     async wipeDatabase() {
-        this.manualLoading$$.next(true);
+        this.wippingDatabase$$.next(true);
         await this.toService(async () => {
             try {
                 await resetDatabase();
@@ -90,11 +173,35 @@ export class SettingsComponent extends ExternalComponent {
                 this.notification.error(
                     'Ha ocurrido un error',
                     'No se han borrado los datos, o han sido borrados parcialmente',
-                    { nzPlacement: 'bottom' }
+                    { nzPlacement: 'bottom' },
                 );
             } finally {
-                this.manualLoading$$.next(false);
+                this.wippingDatabase$$.next(false);
                 this.ref.close();
+            }
+        });
+    }
+
+    async saveConfiguration(configuration: Configuration) {
+        this.savingConfiguration$$.next(true);
+        await this.toService(async () => {
+            try {
+                await saveConfiguration(configuration);
+
+                this.notification.success('Configuración guardada correctamente', '', {
+                    nzPlacement: 'bottom',
+                });
+            }
+            catch (error) {
+                console.error(error);
+                this.notification.error(
+                    'Ha ocurrido un error',
+                    'No se ha guardado la configuración correctamente',
+                    { nzPlacement: 'bottom' },
+                )
+            }
+            finally {
+                this.savingConfiguration$$.next(false);
             }
         });
     }
