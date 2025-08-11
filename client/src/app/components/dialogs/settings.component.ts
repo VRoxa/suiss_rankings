@@ -3,15 +3,18 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, from } from 'rxjs';
 import { mergeToObject } from '../../utils/rx-utils';
 import { NzFlexModule } from 'ng-zorro-antd/flex';
 import { ExternalComponent } from '../../pages/abstractions/external';
 import { resetDatabase } from '../../domain/services/reset-database.service';
 import { NzNotificationService } from 'ng-zorro-antd/notification';
 import { NzModalRef } from 'ng-zorro-antd/modal';
+import { getConfiguration } from '../../domain/services/configuration.service';
+import { Configuration } from '../models/configuration.model';
 
 interface SettingsViewModel {
+    configuration: Configuration;
     loading: boolean;
 }
 
@@ -67,7 +70,10 @@ export class SettingsComponent extends ExternalComponent {
 
     manualLoading$$ = new BehaviorSubject<boolean>(false);
 
+    configuration$ = this.toService<Configuration>(getConfiguration);
+
     vm$ = mergeToObject<SettingsViewModel>({
+        configuration: from(this.configuration$),
         loading: this.manualLoading$$,
     });
 

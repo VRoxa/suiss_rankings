@@ -20,7 +20,7 @@ export const resetDatabase = async () => {
     await safeExecute(supabase.from('round').delete().neq('id', 0));
     await safeExecute(supabase.from('match').delete().neq('id', 0));
     
-    // Reset sequences nack to min. value
+    // Reset sequences back to min. value
     await safeExecute(
         supabase.rpc('reset_sequence', {
             table_name: 'participant',
