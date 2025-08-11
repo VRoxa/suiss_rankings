@@ -1,10 +1,5 @@
+import { Configuration } from "../../components/models/configuration.model";
 import { Match } from "../entities/match.entity";
-
-// TODO - Make these values configurable
-const FULL_WIN = 60;
-const WIN_MATCH = 50;
-const LOSE_MATCH = -50;
-const GOAL_DIFFERENCE = 10;
 
 export enum CountFor { One = 1, Two = 2 }
 
@@ -12,7 +7,12 @@ const hasFinished = (score: Match['score'][number]): score is NonNullable<Match[
     return score?.winner !== undefined && score.winner !== 0;
 }
 
-export const calculateScore = (score: Match['score'], countFor: CountFor): number => {
+export const calculateScore = async (
+    configuration: Configuration['scorePoints'],
+    score: Match['score'],
+    countFor: CountFor
+): Promise<number> => {
+
     const arrangedScore = score
         .filter(hasFinished)
         .map(({ score1, score2, winner }) => ({
@@ -22,12 +22,12 @@ export const calculateScore = (score: Match['score'], countFor: CountFor): numbe
         }));
 
     const won = arrangedScore.filter(({ winner }) => winner).length === 2;
-    return +won * FULL_WIN +
+    return +won * configuration.fullWin +
         arrangedScore.reduce(
             (acc, match) => {
                 return acc +
-                    (match.inFavor - match.against) * GOAL_DIFFERENCE +
-                    (match.winner ? WIN_MATCH : LOSE_MATCH)
+                    (match.inFavor - match.against) * configuration.goalDifference +
+                    (match.winner ? configuration.winGame : configuration.loseGame)
             },
             0
         );
