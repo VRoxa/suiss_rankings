@@ -7,6 +7,7 @@ import {
     combineLatest,
     filter,
     firstValueFrom,
+    from,
     map,
     merge,
     of,
@@ -41,6 +42,8 @@ import { Round } from '../domain/entities/round.entity';
 import { NzFlexModule } from 'ng-zorro-antd/flex';
 import { NzNotificationService } from 'ng-zorro-antd/notification';
 import { AuthService } from '../auth/auth.service';
+import { Configuration } from '../components/models/configuration.model';
+import { getConfiguration } from '../domain/services/configuration.service';
 
 const orderMatches = <T extends Match>(matches: T[]) => {
     return [...matches].sort(({ order: a }, { order: b }) => a - b);
@@ -194,6 +197,8 @@ export class RoundPage extends ExternalComponent {
         ),
     );
 
+    configuration$ = this.toService<Configuration>(getConfiguration);
+
     vm$ = mergeToObject<RoundPageViewModel>({
         isAuthorized: this.auth.isAuthorized$,
         loading: merge(
@@ -226,14 +231,18 @@ export class RoundPage extends ExternalComponent {
                 ),
             ),
         ),
-        isKnockoutRound: combineLatest([
-            this.roundId$,
-            this.allRounds$,
-        ]).pipe(
-            map(([id, rounds]) => {
-                const currentRoundIndex = rounds.findIndex((x) => x.id === id);
-                return currentRoundIndex === 3; // Fourth round
-            }),
+        isKnockoutRound: from(this.configuration$).pipe(
+            switchMap(({ knockoutRound }) =>
+                combineLatest([
+                    this.roundId$,
+                    this.allRounds$,
+                ]).pipe(
+                    map(([id, rounds]) => {
+                        const currentRoundIndex = rounds.findIndex((x) => x.id === id);
+                        return currentRoundIndex === (knockoutRound - 1);
+                    }),
+                ),
+            ),
         ),
     });
 

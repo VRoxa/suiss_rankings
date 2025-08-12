@@ -114,7 +114,7 @@ const addMatchesForRound = async (
             totalScore2: 0,
             inProgress: true,
             score: [emptyScore, emptyScore, null],
-        })
+        }),
     );
 
     await repository.addAll('match', matches);

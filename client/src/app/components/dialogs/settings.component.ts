@@ -42,28 +42,52 @@ interface SettingsViewModel {
     template: `
         @if (vm$ | async; as vm) {
             <ng-template #configuration>
-                <nz-input-number class="input" [(ngModel)]="vm.configuration.goalsPerMatch">
+                <nz-input-number class="input"
+                    [(ngModel)]="vm.configuration.goalsPerMatch"
+                    nzMin="0"
+                    nzMax="10"
+                >
                     <span nzInputAddonBefore class="input__prefix">Goles por partida</span>
+                </nz-input-number>
+
+                <nz-input-number class="input"
+                    [(ngModel)]="vm.configuration.knockoutRound"
+                    nzMin="0"
+                    [nzMax]="vm.configuration.maxRounds"
+                >
+                    <span nzInputAddonBefore class="input__prefix">Ronda de <i>knock-out</i></span>
                 </nz-input-number>
 
                 <nz-divider nzText="Puntuación"></nz-divider>
 
-                <nz-input-number class="input" [(ngModel)]="vm.configuration.scorePoints.fullWin">
+                <nz-input-number class="input"
+                    [(ngModel)]="vm.configuration.scorePoints.fullWin"
+                    nzMin="0"
+                >
                     <span nzInputAddonBefore class="input__prefix">Victoria cruce</span>
                     <span nzInputAddonAfter>pts</span>
                 </nz-input-number>
 
-                <nz-input-number class="input" [(ngModel)]="vm.configuration.scorePoints.winGame">
+                <nz-input-number class="input"
+                    [(ngModel)]="vm.configuration.scorePoints.winGame"
+                    nzMin="0"
+                >
                     <span nzInputAddonBefore class="input__prefix">Victoria partida</span>
                     <span nzInputAddonAfter>pts</span>
                 </nz-input-number>
 
-                <nz-input-number class="input" [(ngModel)]="vm.configuration.scorePoints.loseGame">
+                <nz-input-number class="input"
+                    [(ngModel)]="vm.configuration.scorePoints.loseGame"
+                    nzMax="0"
+                >
                     <span nzInputAddonBefore class="input__prefix">Derrota partida</span>
                     <span nzInputAddonAfter>pts</span>
                 </nz-input-number>
 
-                <nz-input-number class="input" [(ngModel)]="vm.configuration.scorePoints.goalDifference">
+                <nz-input-number class="input"
+                    [(ngModel)]="vm.configuration.scorePoints.goalDifference"
+                    nzMin="0"
+                >
                     <span nzInputAddonBefore class="input__prefix">Diferencia de goles</span>
                     <span nzInputAddonAfter>pts</span>
                 </nz-input-number>
