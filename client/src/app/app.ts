@@ -15,6 +15,10 @@ import { AuthService } from './auth/auth.service';
 import { mergeToObject } from './utils/rx-utils';
 import { ParticipantPerformanceComponent } from './components/dialogs/participant-performance.component';
 import { Participant } from './domain/entities/participant.entity';
+import { ExternalComponent } from './pages/abstractions/external';
+import { getConfiguration } from './domain/services/configuration.service';
+import { Configuration } from './components/models/configuration.model';
+import { from, map } from 'rxjs';
 
 interface AppViewModel {
     isAuthorized: boolean;
@@ -168,7 +172,7 @@ export class App {
                 },
             ],
             nzBodyStyle: {
-                maxHeight: '70vh',
+                maxHeight: '65vh',
                 overflowY: 'auto',
             },
         });
@@ -182,6 +186,10 @@ export class App {
                 label: 'Cerrar',
                 onClick: () => ref.close(),
             }],
+            nzBodyStyle: {
+                maxHeight: '65vh',
+                overflowY: 'auto',
+            },
         });
     }
 }
@@ -220,24 +228,26 @@ export class App {
         Cada ronda puntuará según el resultado, siguiendo los siguientes
         criterios:<br />
 
-        <nz-table
-            #points
-            [nzData]="pointsCriteria"
-            [nzShowPagination]="false"
-            nzBordered
-        >
-            <thead></thead>
-            <tbody>
-                @for (criteria of points.data; track criteria.id) {
-                <tr>
-                    <td>{{ criteria.label }}</td>
-                    <td>
-                        <code>{{ criteria.value }}</code>
-                    </td>
-                </tr>
-                }
-            </tbody>
-        </nz-table>
+        @if (vm$ | async; as vm) {
+            <nz-table
+                #points
+                [nzData]="vm"
+                [nzShowPagination]="false"
+                nzBordered
+            >
+                <thead></thead>
+                <tbody>
+                    @for (criteria of points.data; track criteria.id) {
+                        <tr>
+                            <td>{{ criteria.label }}</td>
+                            <td>
+                                <code>{{ criteria.value }}</code>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </nz-table>
+        }
 
         <nz-collapse>
             <nz-collapse-panel nzHeader="Ejemplo de puntuación (1)">
@@ -347,27 +357,30 @@ export class App {
         `,
     ],
 })
-export class InformationContentComponent {
-    pointsCriteria = [
+export class InformationContentComponent extends ExternalComponent {
+
+    vm$ = from(
+        this.toService<Configuration>(getConfiguration)
+    ).pipe(map(({ scorePoints }) => [
         {
             id: 'win-match',
             label: 'Ganar cruce',
-            value: '+60',
+            value: `+${scorePoints.fullWin}`,
         },
         {
             id: 'win-game',
             label: 'Ganar partida',
-            value: '+50',
+            value: `+${scorePoints.winGame}`,
         },
         {
             id: 'lose-game',
             label: 'Perder partida',
-            value: '-50',
+            value: `${scorePoints.loseGame}`,
         },
         {
             id: 'difference',
             label: 'Diferencia de goles',
-            value: '±10',
+            value: `±${scorePoints.goalDifference}`,
         },
-    ];
+    ]));
 }
