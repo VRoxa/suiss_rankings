@@ -17,11 +17,13 @@ import { NzSkeletonModule } from 'ng-zorro-antd/skeleton';
 import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { FormsModule } from '@angular/forms';
+import { exportData } from '../../domain/services/export-data.service';
 
 interface SettingsViewModel {
     configuration: Configuration;
     wippingDatabase: boolean;
     savingConfiguration: boolean;
+    exportingData: boolean;
 }
 
 @Component({
@@ -113,7 +115,27 @@ interface SettingsViewModel {
 
             <nz-divider nzText="Danger zone"></nz-divider>
 
-            <div nz-flex [nzVertical]="true" nzAlign="center">
+            <div nz-flex [nzVertical]="true" nzAlign="center" nzGap="middle">
+                <div nz-flex nzAlign="center" [style.width.%]="100" nzGap="small">
+                    <button nz-button
+                        nzType="primary"
+                        [nzLoading]="vm.exportingData"
+                        (click)="exportData()"
+                    >
+                        <nz-icon nzType="export" nzTheme="outline" />
+                        {{ vm.exportingData ? 'Exportando datos...' : 'Exportar datos' }}
+                    </button>
+
+                    <button nz-button
+                        nzType="primary"
+                        [nzLoading]="vm.exportingData"
+                        (click)="exportData()"
+                    >
+                        {{ vm.exportingData ? 'Importando datos...' : 'Importar datos' }}
+                        <nz-icon nzType="import" nzTheme="outline" />
+                    </button>
+                </div>
+
                 <button
                     nz-button
                     nzDanger
@@ -175,6 +197,7 @@ export class SettingsComponent extends ExternalComponent {
 
     wippingDatabase$$ = new BehaviorSubject<boolean>(false);
     savingConfiguration$$ = new BehaviorSubject<boolean>(false);
+    exportingData$$ = new BehaviorSubject<boolean>(false);
 
     configuration$ = this.toService<Configuration>(getConfiguration);
 
@@ -182,6 +205,7 @@ export class SettingsComponent extends ExternalComponent {
         configuration: from(this.configuration$),
         wippingDatabase: this.wippingDatabase$$,
         savingConfiguration: this.savingConfiguration$$,
+        exportingData: this.exportingData$$,
     });
 
     async wipeDatabase() {
@@ -222,10 +246,34 @@ export class SettingsComponent extends ExternalComponent {
                     'Ha ocurrido un error',
                     'No se ha guardado la configuración correctamente',
                     { nzPlacement: 'bottom' },
-                )
+                );
             }
             finally {
                 this.savingConfiguration$$.next(false);
+            }
+        });
+    }
+    
+    async exportData() {
+        this.exportingData$$.next(true);
+        await this.toService(async () => {
+            try {
+                await exportData();
+
+                this.notification.success('Datos exportados correctamente', '', {
+                    nzPlacement: 'bottom',
+                });
+            }
+            catch (error) {
+                console.error(error);
+                this.notification.error(
+                    'Ha ocurrido un error',
+                    'No se han podido exportar los datos correctamente',
+                    { nzPlacement: 'bottom' },
+                );
+            }
+            finally {
+                this.exportingData$$.next(false);
             }
         });
     }
