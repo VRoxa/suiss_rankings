@@ -43,7 +43,7 @@ export class SupabaseRepository {
             .eq('id', record.id);
 
         if (!!error) {
-            console.error(`Error updating record ${record.id} to table ${tableName}`, error);
+            throw new Error(`Error updating record to ${tableName}. ${error.message}`);
         }
     }
 
@@ -54,13 +54,11 @@ export class SupabaseRepository {
             .select('id');
 
         if (!!error) {
-            console.error(`Error inserting new record to ${tableName}`, error);
-            return -1;
+            throw new Error(`Error inserting new records to ${tableName}. ${error.message}`);
         }
 
         if (!data) {
-            console.error(`Error inserting new record to ${tableName}, null data returned`);
-            return -1;
+            throw new Error(`Error updating table ${tableName}. Null data retruned`);
         }
         
         return data[0]?.id ?? 0;
@@ -73,13 +71,11 @@ export class SupabaseRepository {
             .select('id');
 
         if (!!error) {
-            console.error(`Error inserting new record to ${tableName}`, error);
-            return [];
+            throw new Error(`Error inserting new records to ${tableName}. ${error.message}`);
         }
 
         if (!data) {
-            console.error(`Error inserting new record to ${tableName}, null data returned`);
-            return [];
+            throw new Error(`Error updating table ${tableName}. Null data retruned`);
         }
 
         return data.map(({ id }) => id);

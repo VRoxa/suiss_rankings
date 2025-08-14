@@ -18,12 +18,14 @@ import { NzDividerModule } from 'ng-zorro-antd/divider';
 import { NzInputNumberModule } from 'ng-zorro-antd/input-number';
 import { FormsModule } from '@angular/forms';
 import { exportData } from '../../domain/services/export-data.service';
+import { importData } from '../../domain/services/import-data.service';
 
 interface SettingsViewModel {
     configuration: Configuration;
     wippingDatabase: boolean;
     savingConfiguration: boolean;
     exportingData: boolean;
+    importingData: boolean;
 }
 
 @Component({
@@ -128,11 +130,13 @@ interface SettingsViewModel {
 
                     <button nz-button
                         nzType="primary"
-                        [nzLoading]="vm.exportingData"
-                        (click)="exportData()"
+                        [nzLoading]="vm.importingData"
+                        (click)="importFileInput.click()"
                     >
                         {{ vm.exportingData ? 'Importando datos...' : 'Importar datos' }}
                         <nz-icon nzType="import" nzTheme="outline" />
+
+                        <input type="file" #importFileInput hidden (change)="importData($event)">
                     </button>
                 </div>
 
@@ -198,6 +202,7 @@ export class SettingsComponent extends ExternalComponent {
     wippingDatabase$$ = new BehaviorSubject<boolean>(false);
     savingConfiguration$$ = new BehaviorSubject<boolean>(false);
     exportingData$$ = new BehaviorSubject<boolean>(false);
+    importingData$$ = new BehaviorSubject<boolean>(false);
 
     configuration$ = this.toService<Configuration>(getConfiguration);
 
@@ -206,6 +211,7 @@ export class SettingsComponent extends ExternalComponent {
         wippingDatabase: this.wippingDatabase$$,
         savingConfiguration: this.savingConfiguration$$,
         exportingData: this.exportingData$$,
+        importingData: this.importingData$$,
     });
 
     async wipeDatabase() {
@@ -274,6 +280,31 @@ export class SettingsComponent extends ExternalComponent {
             }
             finally {
                 this.exportingData$$.next(false);
+            }
+        });
+    }
+
+    async importData({ target }: Event) {
+        this.importingData$$.next(true);
+        await this.toService(async () => {
+            try {
+                const [file] = (target as HTMLInputElement).files!;
+                await importData(file);
+
+                this.notification.success('Datos importardos correctamente', '', {
+                    nzPlacement: 'bottom',
+                });
+            }
+            catch (error) {
+                console.error(error);
+                this.notification.error(
+                    'Ha ocurrido un error',
+                    'No se han podido importar los datos correctamente',
+                    { nzPlacement: 'bottom' },
+                );
+            }
+            finally {
+                this.importingData$$.next(false);
             }
         });
     }
