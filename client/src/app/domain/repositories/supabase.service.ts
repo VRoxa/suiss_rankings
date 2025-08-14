@@ -58,7 +58,7 @@ export class SupabaseRepository {
         }
 
         if (!data) {
-            throw new Error(`Error updating table ${tableName}. Null data retruned`);
+            throw new Error(`Error updating table ${tableName}. Null data returned`);
         }
         
         return data[0]?.id ?? 0;
@@ -75,7 +75,7 @@ export class SupabaseRepository {
         }
 
         if (!data) {
-            throw new Error(`Error updating table ${tableName}. Null data retruned`);
+            throw new Error(`Error updating table ${tableName}. Null data returned`);
         }
 
         return data.map(({ id }) => id);

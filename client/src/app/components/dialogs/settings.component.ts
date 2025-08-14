@@ -291,7 +291,7 @@ export class SettingsComponent extends ExternalComponent {
                 const [file] = (target as HTMLInputElement).files!;
                 await importData(file);
 
-                this.notification.success('Datos importardos correctamente', '', {
+                this.notification.success('Datos importados correctamente', '', {
                     nzPlacement: 'bottom',
                 });
             }

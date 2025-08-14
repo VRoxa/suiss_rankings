@@ -3,7 +3,6 @@ import { SupabaseRepository } from "../repositories/supabase.service";
 import { Round } from "../entities/round.entity";
 import { Participant } from "../entities/participant.entity";
 import { Match } from "../entities/match.entity";
-import { TableName } from "../repositories/types/supabase.types";
 
 const readFromFile = (file: File): Promise<string> => {
     const reader = new FileReader();
