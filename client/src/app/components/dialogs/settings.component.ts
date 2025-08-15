@@ -54,6 +54,13 @@ interface SettingsViewModel {
                     <span nzInputAddonBefore class="input__prefix">Goles por partida</span>
                 </nz-input-number>
 
+                 <nz-input-number class="input"
+                    [(ngModel)]="vm.configuration.maxRounds"
+                    nzMin="0"
+                >
+                    <span nzInputAddonBefore class="input__prefix">Rondas</span>
+                </nz-input-number>
+
                 <nz-input-number class="input"
                     [(ngModel)]="vm.configuration.knockoutRound"
                     nzMin="0"
@@ -100,6 +107,7 @@ interface SettingsViewModel {
                     <button nz-button
                         nzType="primary"
                         (click)="saveConfiguration(vm.configuration)"
+                        [nzLoading]="vm.savingConfiguration"
                     >
                         Guardar configuración
                     </button>
