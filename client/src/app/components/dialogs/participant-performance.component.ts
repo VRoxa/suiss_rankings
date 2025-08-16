@@ -6,7 +6,7 @@ import { NzCollapseModule } from 'ng-zorro-antd/collapse';
 import { NzSpinModule } from 'ng-zorro-antd/spin';
 import { NzSkeletonModule } from 'ng-zorro-antd/skeleton';
 import { NzSelectModule } from 'ng-zorro-antd/select';
-import { BehaviorSubject, map, of, shareReplay, switchMap } from 'rxjs';
+import { BehaviorSubject, from, map, of, shareReplay, switchMap } from 'rxjs';
 import { Match } from '../../domain/entities/match.entity';
 import { MatchCardComponent } from "../match-card.component";
 import { dataFromQuery, mergeToObject, sswitch } from '../../utils/rx-utils';
@@ -15,6 +15,9 @@ import { ChartData, ChartOptions } from 'chart.js';
 import { Round } from '../../domain/entities/round.entity';
 import { FormsModule } from '@angular/forms';
 import { NzTabsModule } from 'ng-zorro-antd/tabs';
+import { ExternalComponent } from '../../pages/abstractions/external';
+import { Configuration } from '../models/configuration.model';
+import { getConfiguration } from '../../domain/services/configuration.service';
 
 type MatchWithRound = Omit<Match, 'round'> & {
     round: { name: string }
@@ -126,13 +129,14 @@ interface ParticipantPerformanceComponentViewModel {
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ParticipantPerformanceComponent {
+export class ParticipantPerformanceComponent extends ExternalComponent {
     private readonly repository = inject(SupabaseRepository);
     selectedParticipants$$ = new BehaviorSubject<Participant[]>([]);
 
     allParticipants$ = this.repository.getAll<Participant>('participant').pipe(dataFromQuery);
     allMatches$ = this.repository.getAll<Match>('match').pipe(dataFromQuery);
     allRounds$ = this.repository.getAll<Round>('round').pipe(dataFromQuery);
+    configuration$ = from(this.toService<Configuration>(getConfiguration));
 
     selectedMatches$ = this.selectedParticipants$$.pipe(
         sswitch(
@@ -165,91 +169,95 @@ export class ParticipantPerformanceComponent {
         shareReplay({ bufferSize: 1, refCount: true }),
     );
 
-    chart$ = this.allMatches$.pipe(
-        map((matches) => matches.filter(({ inProgress }) => !inProgress)),
-        switchMap((matches) => this.allRounds$.pipe(
-            map((rounds) => matches.map((match) => ({
-                ...match,
-                round: { name: rounds.find(x => x.id === match.round)!.name },
-            } as MatchWithRound))),
-        )),
-        map(groupMatchesByParticipant),
-        switchMap((groups) => this.selectedParticipants$$.pipe(
-            sswitch(
-                (participants) => !!participants.length,
-                (participants) => of(
-                    participants.reduce(
-                        (acc, curr) => {
-                            acc[curr.id] = groups[curr.id];
-                            return acc;
-                        },
-                        {} as {[key: number]: MatchWithRound[]}
+    chart$ = this.configuration$.pipe(
+        switchMap(({ maxRounds }) => {
+            return this.allMatches$.pipe(
+                map((matches) => matches.filter(({ inProgress }) => !inProgress)),
+                switchMap((matches) => this.allRounds$.pipe(
+                    map((rounds) => matches.map((match) => ({
+                        ...match,
+                        round: { name: rounds.find(x => x.id === match.round)!.name },
+                    } as MatchWithRound))),
+                )),
+                map(groupMatchesByParticipant),
+                switchMap((groups) => this.selectedParticipants$$.pipe(
+                    sswitch(
+                        (participants) => !!participants.length,
+                        (participants) => of(
+                            participants.reduce(
+                                (acc, curr) => {
+                                    acc[curr.id] = groups[curr.id];
+                                    return acc;
+                                },
+                                {} as {[key: number]: MatchWithRound[]}
+                            ),
+                        ),
+                        () => of(groups),
                     ),
-                ),
-                () => of(groups),
-            ),
-        )),
-        map((groups) => Object.keys(groups).map((participant) => {
-            
-            // Select total scores
-            const totals = groups[+participant].map((match) => ({
-                round: match.round.name,
-                score: match.team1 === +participant
-                    ? match.totalScore1
-                    : match.totalScore2,
-            }));
+                )),
+                map((groups) => Object.keys(groups).map((participant) => {
+                    
+                    // Select total scores
+                    const totals = groups[+participant].map((match) => ({
+                        round: match.round.name,
+                        score: match.team1 === +participant
+                            ? match.totalScore1
+                            : match.totalScore2,
+                    }));
 
-            // Fill missing rounds
-            const rounds = totals.length;
-            const missingRounds = Array.from({ length: 6 - rounds }, (_, i) => ({
-                round: `R${rounds + 1 + i}`,
-                score: 0,
-            }));
+                    // Fill missing rounds
+                    const rounds = totals.length;
+                    const missingRounds = Array.from({ length: maxRounds - rounds }, (_, i) => ({
+                        round: `R${rounds + 1 + i}`,
+                        score: 0,
+                    }));
 
-            const withRounds = [...totals, ...missingRounds];
+                    const withRounds = [...totals, ...missingRounds];
 
-            // Reduce all scores to total
-            const reducedScores = withRounds.reduce(
-                (acc, curr) => [
-                    ...acc,
-                    {
-                        ...curr,
-                        total: acc[acc.length - 1].total + curr.score
-                    }
-                ],
-                [{ round: '', score: 0, total: 0 }],
-            );
+                    // Reduce all scores to total
+                    const reducedScores = withRounds.reduce(
+                        (acc, curr) => [
+                            ...acc,
+                            {
+                                ...curr,
+                                total: acc[acc.length - 1].total + curr.score
+                            }
+                        ],
+                        [{ round: '', score: 0, total: 0 }],
+                    );
 
-            // Dataset
-            const dataset = {
-                data: reducedScores.map(({ total }) => total),
-                label: participant
-            };
+                    // Dataset
+                    const dataset = {
+                        data: reducedScores.map(({ total }) => total),
+                        label: participant
+                    };
 
-            return dataset;
-        })),
-        switchMap((datasets) => this.allParticipants$.pipe(
-            map((participants) => datasets.map((dataset) => ({
-                ...dataset,
-                label: participants.find((participant) => participant.id === +dataset.label)!.name,
-            })))
-        )),
-        map((datasets) => ({
-            data: {
-                datasets,
-                labels: Array.from({length: 7}, (_, i) => !!i ? `R${i}` : ''), // First ghost round (R0) is an empty string
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: true,
-                        align: 'start' as const,
-                        padding: 20
+                    return dataset;
+                })),
+                switchMap((datasets) => this.allParticipants$.pipe(
+                    map((participants) => datasets.map((dataset) => ({
+                        ...dataset,
+                        label: participants.find((participant) => participant.id === +dataset.label)!.name,
+                    })))
+                )),
+                map((datasets) => ({
+                    data: {
+                        datasets,
+                        labels: Array.from({length: maxRounds + 1}, (_, i) => !!i ? `R${i}` : ''), // First ghost round (R0) is an empty string
                     },
-                }
-            }
-        })),
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                align: 'start' as const,
+                                padding: 20
+                            },
+                        }
+                    }
+                })),
+            );
+        }),        
     );
 
     vm$ = mergeToObject<ParticipantPerformanceComponentViewModel>({
