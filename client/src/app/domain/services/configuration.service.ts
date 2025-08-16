@@ -3,8 +3,8 @@ import { SupabaseRepository } from "../repositories/supabase.service"
 import { ConfigurationValue } from "../entities/configuration-value.entity";
 import { Configuration } from "../../components/models/configuration.model";
 
-export const getConfiguration = async (): Promise<Configuration> => {
-    const repository = inject(SupabaseRepository);
+export const getConfiguration = async (repository?: SupabaseRepository): Promise<Configuration> => {
+    repository ??= inject(SupabaseRepository);
     const values = await repository.disposable.getAll<ConfigurationValue>('configuration');
 
     const getValue = (name: string): number => {

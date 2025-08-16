@@ -44,6 +44,7 @@ import { NzNotificationService } from 'ng-zorro-antd/notification';
 import { AuthService } from '../auth/auth.service';
 import { Configuration } from '../components/models/configuration.model';
 import { getConfiguration } from '../domain/services/configuration.service';
+import { knockoutParticipants } from '../domain/services/knockout-participants.service';
 
 const orderMatches = <T extends Match>(matches: T[]) => {
     return [...matches].sort(({ order: a }, { order: b }) => a - b);
@@ -74,7 +75,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
                     <nz-alert
                         nzType="error"
                         nzMessage="Knockout"
-                        nzDescription="Las cuatro últimas parejas en la clasificación, después de esta ronda, serán eliminadas."
+                        nzDescription="Las ({{ vm.configuration.participantsToKnockout }}) últimas parejas en la clasificación, después de esta ronda, serán eliminadas."
                         nzCloseable
                     />
                 </div>
@@ -89,7 +90,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
                             nzShape="round"
                             class="next-round__btn"
                             [disabled]="!vm.isRoundFinished || vm.loading"
-                            (click)="updateScores(vm.matches)"
+                            (click)="updateScores(vm.matches, vm.isKnockoutRound)"
                         >
                             Actualizar puntuación
                             <nz-icon nzType="reload-o"></nz-icon>
@@ -244,6 +245,7 @@ export class RoundPage extends ExternalComponent {
                 ),
             ),
         ),
+        configuration: from(this.configuration$),
     });
 
     public async openUpdateMatch(match: MatchViewModel) {
@@ -280,7 +282,7 @@ export class RoundPage extends ExternalComponent {
         });
     }
 
-    public async updateScores(matches: MatchViewModel[]) {
+    public async updateScores(matches: MatchViewModel[], isKnockoutRound: boolean) {
         const rawMatches = matches.map((x): Match => ({
             ...x,
             team1: x.team1.id,
@@ -288,13 +290,19 @@ export class RoundPage extends ExternalComponent {
         }));
 
         this.manualLoading$$.next(true);
-        this.toService(async () => {
+        await this.toService(async () => {
             await updateParticipantsScore(rawMatches);
             this.notification.success(
                 'Clasificación actualizada', '',
                 { nzPlacement: 'bottom' }
             );
         });
+
+        if (isKnockoutRound) {
+            this.toService(async () => {
+                await knockoutParticipants();
+            });
+        }
     }
 
     public async nextRound() {
