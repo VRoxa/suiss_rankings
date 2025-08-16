@@ -69,6 +69,13 @@ interface SettingsViewModel {
                     <span nzInputAddonBefore class="input__prefix">Ronda de <i>knock-out</i></span>
                 </nz-input-number>
 
+                <nz-input-number class="input"
+                    [(ngModel)]="vm.configuration.participantsToKnockout"
+                    nzMin="0"
+                >
+                    <span nzInputAddonBefore class="input__prefix">Eliminados en <i>knock-out</i></span>
+                </nz-input-number>
+
                 <nz-divider nzText="Puntuación"></nz-divider>
 
                 <nz-input-number class="input"
