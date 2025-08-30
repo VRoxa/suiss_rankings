@@ -4,7 +4,7 @@ export type Entity = {
     id: number;
 }
 
-export type TableName = 'participant' | 'match' | 'round' | 'configuration';
+export type TableName = 'participant' | 'match' | 'round' | 'configuration' | 'backup';
 
 export type QueryResult<T> = {
     loading: boolean;

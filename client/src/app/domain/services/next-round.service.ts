@@ -80,6 +80,10 @@ export const nextRound = async (): Promise<number> => {
         .select('*', { count: 'exact', head: true });
     const nextRoundName = `R${(count ?? 0) + 1}`;
 
+    console.info('[NEXT ROUND] Next round to insert', {
+        nextRoundName,
+    });
+
     const nextRoundId = await repository.add<Round>('round', {
         name: nextRoundName,
     });

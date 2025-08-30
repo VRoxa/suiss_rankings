@@ -8,6 +8,7 @@ export type MatchViewModel = Omit<Match, 'team1 | team2'> & {
 }
 
 export type RoundPageViewModel = {
+    roundId: number;
     isAuthorized: boolean;
     loading: boolean;
     isCurrentRound: boolean;

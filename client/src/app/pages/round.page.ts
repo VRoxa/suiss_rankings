@@ -45,6 +45,7 @@ import { AuthService } from '../auth/auth.service';
 import { Configuration } from '../components/models/configuration.model';
 import { getConfiguration } from '../domain/services/configuration.service';
 import { knockoutParticipants } from '../domain/services/knockout-participants.service';
+import { RollbackRoundButtonComponent } from "../components/rollback-round-button.component";
 
 const orderMatches = <T extends Match>(matches: T[]) => {
     return [...matches].sort(({ order: a }, { order: b }) => a - b);
@@ -53,22 +54,36 @@ const orderMatches = <T extends Match>(matches: T[]) => {
 @Component({
     selector: 'sr-round',
     imports: [
-        MatchesListComponent,
-        RoundsNavigatorComponent,
-        CommonModule,
-        RouterModule,
-        NzButtonModule,
-        NzIconModule,
-        NzModalModule,
-        NzAlertModule,
-        NzFlexModule,
-    ],
+    MatchesListComponent,
+    RoundsNavigatorComponent,
+    CommonModule,
+    RouterModule,
+    NzButtonModule,
+    NzIconModule,
+    NzModalModule,
+    NzAlertModule,
+    NzFlexModule,
+    RollbackRoundButtonComponent
+],
     providers: [
         NzNotificationService
     ],
     template: `
         @if (vm$ | async; as vm) {
             <sr-rounds-nav />
+
+            @if (
+                vm.isAuthorized &&
+                vm.isCurrentRound &&
+                !vm.fullRankingUpdated
+            ) {
+                <div class="rollback-button"
+                    nz-flex nzJustify="end"
+                    class="top-action__btn"
+                >
+                    <sr-rollback-button />
+                </div>
+            }
 
             @if (vm.isKnockoutRound) {
                 <div class="knockout-disclaimer">
@@ -88,7 +103,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
                             nz-button
                             nzType="primary"
                             nzShape="round"
-                            class="next-round__btn"
+                            class="top-action__btn"
                             [disabled]="!vm.isRoundFinished || vm.loading"
                             (click)="updateScores(vm.matches, vm.isKnockoutRound)"
                         >
@@ -101,7 +116,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
                             nz-button
                             nzType="primary"
                             nzShape="round"
-                            class="next-round__btn"
+                            class="top-action__btn"
                             [disabled]="!vm.isRoundFinished || vm.loading"
                             (click)="nextRound()"
                         >
@@ -122,7 +137,7 @@ const orderMatches = <T extends Match>(matches: T[]) => {
     `,
     styles: [
         `
-            .next-round__btn {
+            .top-action__btn {
                 margin: 0.5rem 0.5rem 0 0.5rem;
             }
 
@@ -201,6 +216,7 @@ export class RoundPage extends ExternalComponent {
     configuration$ = this.toService<Configuration>(getConfiguration);
 
     vm$ = mergeToObject<RoundPageViewModel>({
+        roundId: this.roundId$,
         isAuthorized: this.auth.isAuthorized$,
         loading: merge(
             loadingFromQuery(this.source$),
@@ -308,16 +324,25 @@ export class RoundPage extends ExternalComponent {
     public async nextRound() {
         this.manualLoading$$.next(true);
         this.toService(async () => {
-            const nextRoundId = await nextRound();
-            this.notification.success(
-                'Siguiente ronda creada', '',
-                { nzPlacement: 'bottom' }
-            );
-
-            this.router.navigate(['/round', nextRoundId]);
-
-            // Refresh rounds, so that control flags are properly recomputed.
-            this.forceRefresh$$.next();
+            try {
+                const nextRoundId = await nextRound();
+                this.notification.success(
+                    'Siguiente ronda creada', '',
+                    { nzPlacement: 'bottom' }
+                );
+    
+                this.router.navigate(['/round', nextRoundId]);
+                
+                // Refresh rounds, so that control flags are properly recomputed.
+                this.forceRefresh$$.next();
+            } catch {
+                this.notification.error(
+                    'Error lanzando ronda', '',
+                    { nzPlacement: 'bottom' }
+                )
+            } finally {
+                this.manualLoading$$.next(false);
+            }
         });
     }
 }

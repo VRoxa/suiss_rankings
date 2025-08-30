@@ -21,6 +21,7 @@ export const updateParticipantsScore = async (
 
     const { round: currentRoundId } = currentRoundMatches[0];
 
+    /* SAVE PARTICIPANTS BACKUP for ROLLBACK */
     /* UPDATE PARTICIPANTS' SCORE BASED ON CURRENT ROUND RESULTS */
     const participants = await repository.disposable.getAll<Participant>(
         'participant'
@@ -30,6 +31,17 @@ export const updateParticipantsScore = async (
         .filter(({ eliminated }) => !eliminated)
         .filter(({ lastRoundScored }) => lastRoundScored !== currentRoundId)
         .map(x => ({...x}));
+
+    if (outdatedParticipants.length === 0) {
+        return;
+    }
+
+    const backup = {
+        id: 0,
+        value: JSON.stringify(participants),
+    };
+
+    await repository.update('backup', backup);
 
     for (const participant of outdatedParticipants) {
         const { difference } = resultsOfCurrentRound.find(

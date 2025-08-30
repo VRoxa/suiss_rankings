@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { createClient, SupabaseClient as Client } from "@supabase/supabase-js";
+import { createClient, SupabaseClient as Client, PostgrestError } from "@supabase/supabase-js";
 import { defer, from, map, Observable, shareReplay, startWith, switchMap } from "rxjs";
 import { AddingEntity, Entity, Query, QueryResult, TableName } from "./types/supabase.types";
 import { DisposableSupabaseService } from "./disposable-supabase.service";
@@ -34,6 +34,36 @@ export class SupabaseRepository {
 
     get disposable() {
         return new DisposableSupabaseService(this.client);
+    }
+
+    async delete<TEntity extends Entity>(tableName: TableName, { id }: TEntity): Promise<void> {
+        const { error } = await this.client
+            .from(tableName)
+            .delete()
+            .eq('id', id);
+
+        if (!!error) {
+            throw new Error(`Error deleting record to ${tableName}. ${error.message}`);
+        }
+    }
+
+    async deleteAll(tableName: TableName): Promise<void> {
+        const safeExecute = async (
+            promise: PromiseLike<{ error: PostgrestError | null }>
+        ) => {
+            const { error } = await promise;
+            if (!!error) {
+                throw new Error(error.message);
+            }
+        };
+
+        await safeExecute(this.client.from(tableName).delete().neq('id', 0));
+        await safeExecute(
+            this.client.rpc('reset_sequence', {
+                table_name: tableName,
+                sequence_name: `${tableName}_id_seq`,
+            }),
+        );
     }
 
     async update<TEntity extends Entity>(tableName: TableName, record: TEntity): Promise<void> {
